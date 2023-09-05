@@ -1,0 +1,14 @@
+= 준영GOAT 꿈백화점 - UserService
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toclevels: 3
+
+== [GET] Index (/)
+
+=== 요청
+include::{snippets}/index/http-request.adoc[]
+
+=== 응답
+include::{snippets}/index/http-response.adoc[]
