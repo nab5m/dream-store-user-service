@@ -33,6 +33,12 @@ logging:
     org:
       springframework:
         DEBUG
+    com:
+      junyounggoat:
+        dreamstore:
+          userservice:
+            DEBUG
+
 ---
 spring:
   config:

@@ -1,5 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,10 +20,22 @@ import static org.springframework.boot.autoconfigure.security.servlet.PathReques
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+    @Value("${spring.h2.console.enabled}")
+    private boolean h2ConsoleEnabled;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, HandlerMappingIntrospector introspector)
             throws Exception
     {
+        if (h2ConsoleEnabled) {
+            // 프로덕션에서는 사용 x, h2-console 디버깅 시에만 써야됨
+            http.authorizeHttpRequests(authorizationManagerRequestMatcherRegistry -> {
+                authorizationManagerRequestMatcherRegistry.requestMatchers(toH2Console()).permitAll();
+            });
+            http.headers((httpSecurityHeadersConfigurer ->
+                    httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable)));
+        }
+
         http.authorizeHttpRequests(authorizationManagerRequestMatcherRegistry -> {
             MvcRequestMatcher.Builder builder = new MvcRequestMatcher.Builder(introspector);
 
@@ -32,7 +45,6 @@ public class SecurityConfig {
                             builder.pattern(HttpMethod.GET, "/v3/api-docs"),
                             builder.pattern(HttpMethod.GET, "/v3/api-docs/*"),
                             builder.pattern(HttpMethod.GET, "/error"),
-                            toH2Console(),
                             builder.pattern(HttpMethod.GET, "/")
                     ).permitAll()
                     .anyRequest().authenticated();
@@ -40,11 +52,6 @@ public class SecurityConfig {
 
         http.csrf((AbstractHttpConfigurer::disable))
                 .httpBasic(AbstractHttpConfigurer::disable);
-
-        // ToDo: iframe 허용 : h2-console 디버깅 시에만 써야됨
-        // 프로필 정보를 토대로 개발 환경에서만 적용할 수 있을까?
-        http.headers((httpSecurityHeadersConfigurer ->
-                httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable)));
 
         return http.build();
     }
