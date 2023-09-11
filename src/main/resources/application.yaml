@@ -8,13 +8,18 @@ spring:
       develop-mysql:
         - common
         - develop
-      prod:
+      production:
         - common
 ---
 spring:
   config:
     activate:
       on-profile: common
+---
+spring:
+  config:
+    activate:
+      on-profile: develop
   jpa:
     show-sql: true
     hibernate:
@@ -28,18 +33,6 @@ logging:
     org:
       springframework:
         DEBUG
----
-spring:
-  config:
-    activate:
-      on-profile: develop
-  jpa:
-    show-sql: true
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
 ---
 spring:
   config:
@@ -65,3 +58,21 @@ spring:
     password: ${spring-datasource-password}
   flyway:
     locations: classpath:/db/migration/mysql_develop
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+  h2:
+    console:
+      enabled: false
+  datasource:
+    url: ${spring-datasource-url}
+    username: ${spring-datasource-username}
+    password: ${spring-datasource-password}
+  flyway:
+    locations: classpath:/db/migration/mysql_production
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
