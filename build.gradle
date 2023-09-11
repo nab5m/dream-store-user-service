@@ -66,3 +66,16 @@ tasks.asciidoctor {
 		}
 	}
 }
+
+tasks.bootBuildImage {
+	imageName = "${System.getenv("dockerImageName")}"
+	tags = ["${System.getenv("dockerImageName")}:${version}", "${System.getenv("dockerImageName")}:latest"]
+	createdDate = "now"
+	publish = true
+	docker {
+		publishRegistry {
+			username = System.getenv("dockerUsername")
+			password = System.getenv("dockerPassword")
+		}
+	}
+}
