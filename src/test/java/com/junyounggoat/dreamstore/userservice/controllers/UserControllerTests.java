@@ -1,8 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.controllers;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,11 +15,14 @@ import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
@@ -51,39 +52,44 @@ public class UserControllerTests {
                 .build();
     }
 
-    private void assertRequiredFieldResponse(String requestData) throws Exception {
+    private ResultActions createUser(String requestData) throws Exception {
         logger.debug("assertRequiredFieldResponse > requestData : " + requestData);
 
         // ToDo: 에러 메시지 검증
-        this.mockMvc.perform(post("/api/v1/user")
+        return this.mockMvc.perform(post("/api/v1/user")
                         .content(requestData)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andDo(document("createUser"));
+                        .contentType(MediaType.APPLICATION_JSON));
     }
 
-    private void assertRequiredFieldResponseByRemoveKey(String jsonString, List<String> requiredFieldsRemoveKeyList)
-            throws Exception
+    private void assertCreateUserRequiredFields(String requestData) {
+        try {
+            ResultActions createUserResultActions = createUser(requestData);
+            createUserResultActions
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("createUser"));
+        } catch (Exception e) {
+            // TIL: RuntimeException을 던져도 테스트 실패함
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<String> generateRequestDataByRemovingKeys(String jsonString, List<String> removeKeyList)
     {
-        for (String jsonKey: requiredFieldsRemoveKeyList) {
+        return removeKeyList.stream().map(jsonKey -> {
             DocumentContext documentContext = JsonPath.parse(jsonString);
             documentContext.delete(jsonKey);
 
-            String requestData = documentContext.jsonString();
-            assertRequiredFieldResponse(requestData);
-        }
+            return documentContext.jsonString();
+        }).collect(Collectors.toList());
     }
 
-    private void assetRequiredFieldResponseByUpdateValue(String jsonString, Map<String, Object> requiredFieldsBlankValueMap)
-            throws Exception 
+    private List<String> generateRequestDataByUpdatingValues(String jsonString, Map<String, Object> requiredFieldsBlankValueMap)
     {
-        for (Map.Entry<String, Object> jsonKeyValueEntry: requiredFieldsBlankValueMap.entrySet()) {
+        return requiredFieldsBlankValueMap.entrySet().stream().map(jsonKeyValueEntry -> {
             DocumentContext documentContext = JsonPath.parse(jsonString);
             documentContext.set(jsonKeyValueEntry.getKey(), jsonKeyValueEntry.getValue());
-
-            String requestData = documentContext.jsonString();
-            assertRequiredFieldResponse(requestData);
-        }
+            return documentContext.jsonString();
+        }).collect(Collectors.toList());
     }
 
     @Test
@@ -103,18 +109,20 @@ public class UserControllerTests {
                 "$.user_login_category_code_id",
                 "$.user_agreement_item_code_id_list",
                 "$.user_privacy_usage_period",
-                "$.user_privacy_usage_period",
-                "$.user_privacy_usage_period",
-                "$.user_privacy_usage_period"
+                "$.user_privacy_usage_period.usage_end_date_time",
+                "$.user_privacy_usage_period.usage_start_date_time"
         );
 
-        assetRequiredFieldResponseByUpdateValue(jsonString, requiredFieldsBlankValueMap);
-        assertRequiredFieldResponseByRemoveKey(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByUpdatingKeys = generateRequestDataByUpdatingValues(jsonString, requiredFieldsBlankValueMap);
+        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+
+        Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
+                .forEach(this::assertCreateUserRequiredFields);
     }
 
     @Test
     @DisplayName("로그인사용자이름으로 사용자 생성 시 필수 값 검증")
-    void createUserByLoginUserNameValidateRequiredFields() throws Exception {
+    void createUserByLoginUserNameValidateRequiredFields() {
         String jsonString = createUserRequestJsonString.get("user_login_credentials");
         Map<String, Object> requiredFieldsBlankValueMap = Map.of(
                 "$.user_login_credentials.login_user_name", "",
@@ -127,8 +135,11 @@ public class UserControllerTests {
         );
 
 
-        assetRequiredFieldResponseByUpdateValue(jsonString, requiredFieldsBlankValueMap);
-        assertRequiredFieldResponseByRemoveKey(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByUpdatingKeys = generateRequestDataByUpdatingValues(jsonString, requiredFieldsBlankValueMap);
+        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+
+        Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
+                .forEach(this::assertCreateUserRequiredFields);
     }
 
     @Test
@@ -139,7 +150,10 @@ public class UserControllerTests {
                 "$.kakao_user"
         );
 
-        assertRequiredFieldResponseByRemoveKey(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+
+        requestDataByRemovingKeys
+                .forEach(this::assertCreateUserRequiredFields);
     }
 
     @Test
@@ -150,7 +164,10 @@ public class UserControllerTests {
                 "$.naver_user"
         );
 
-        assertRequiredFieldResponseByRemoveKey(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+
+        requestDataByRemovingKeys
+                .forEach(this::assertCreateUserRequiredFields);
     }
 
     @Test
