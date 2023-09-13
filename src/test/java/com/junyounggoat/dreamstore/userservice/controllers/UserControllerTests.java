@@ -21,7 +21,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -61,10 +60,9 @@ public class UserControllerTests {
                         .contentType(MediaType.APPLICATION_JSON));
     }
 
-    private void assertCreateUserRequiredFields(String requestData) {
+    private ResultActions assertCreateUserBadRequest(String requestData) {
         try {
-            ResultActions createUserResultActions = createUser(requestData);
-            createUserResultActions
+            return createUser(requestData)
                     .andExpect(status().isBadRequest())
                     .andDo(document("createUser"));
         } catch (Exception e) {
@@ -73,23 +71,20 @@ public class UserControllerTests {
         }
     }
 
-    private List<String> generateRequestDataByRemovingKeys(String jsonString, List<String> removeKeyList)
+    private String removeJsonKey(String jsonString, String removeKey)
     {
-        return removeKeyList.stream().map(jsonKey -> {
-            DocumentContext documentContext = JsonPath.parse(jsonString);
-            documentContext.delete(jsonKey);
+        DocumentContext documentContext = JsonPath.parse(jsonString);
+        documentContext.delete(removeKey);
 
-            return documentContext.jsonString();
-        }).collect(Collectors.toList());
+        return documentContext.jsonString();
     }
 
-    private List<String> generateRequestDataByUpdatingValues(String jsonString, Map<String, Object> requiredFieldsBlankValueMap)
+    private String updateJsonValue(String jsonString, String key, Object value)
     {
-        return requiredFieldsBlankValueMap.entrySet().stream().map(jsonKeyValueEntry -> {
-            DocumentContext documentContext = JsonPath.parse(jsonString);
-            documentContext.set(jsonKeyValueEntry.getKey(), jsonKeyValueEntry.getValue());
-            return documentContext.jsonString();
-        }).collect(Collectors.toList());
+        DocumentContext documentContext = JsonPath.parse(jsonString);
+        documentContext.set(key, value);
+
+        return documentContext.jsonString();
     }
 
     @Test
@@ -113,11 +108,16 @@ public class UserControllerTests {
                 "$.user_privacy_usage_period.usage_start_date_time"
         );
 
-        List<String> requestDataByUpdatingKeys = generateRequestDataByUpdatingValues(jsonString, requiredFieldsBlankValueMap);
-        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByUpdatingKeys = requiredFieldsBlankValueMap
+                .entrySet()
+                .stream()
+                .map(jsonKeyValueEntry -> updateJsonValue(jsonString, jsonKeyValueEntry.getKey(), jsonKeyValueEntry.getValue()))
+                .toList();
+        List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
+                .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
-                .forEach(this::assertCreateUserRequiredFields);
+                .forEach(this::assertCreateUserBadRequest);
     }
 
     @Test
@@ -135,11 +135,16 @@ public class UserControllerTests {
         );
 
 
-        List<String> requestDataByUpdatingKeys = generateRequestDataByUpdatingValues(jsonString, requiredFieldsBlankValueMap);
-        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByUpdatingKeys = requiredFieldsBlankValueMap
+                .entrySet()
+                .stream()
+                .map(jsonKeyValueEntry -> updateJsonValue(jsonString, jsonKeyValueEntry.getKey(), jsonKeyValueEntry.getValue()))
+                .toList();
+        List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
+                .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
-                .forEach(this::assertCreateUserRequiredFields);
+                .forEach(this::assertCreateUserBadRequest);
     }
 
     @Test
@@ -150,10 +155,11 @@ public class UserControllerTests {
                 "$.kakao_user"
         );
 
-        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
+                .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         requestDataByRemovingKeys
-                .forEach(this::assertCreateUserRequiredFields);
+                .forEach(this::assertCreateUserBadRequest);
     }
 
     @Test
@@ -164,10 +170,11 @@ public class UserControllerTests {
                 "$.naver_user"
         );
 
-        List<String> requestDataByRemovingKeys = generateRequestDataByRemovingKeys(jsonString, requiredFieldsRemoveKeyList);
+        List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
+                .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         requestDataByRemovingKeys
-                .forEach(this::assertCreateUserRequiredFields);
+                .forEach(this::assertCreateUserBadRequest);
     }
 
     @Test
