@@ -8,7 +8,7 @@ public class NaverUserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long naverUserId;
+    private long naverUserId;
 
     @ManyToOne
     @JoinColumn(name = "userLoginCategoryId", nullable = false)

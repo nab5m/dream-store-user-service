@@ -11,7 +11,7 @@ public class CodeGroupEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long codeGroupId;
+    private long codeGroupId;
 
     @Column(unique = true, nullable = false, length = 30, updatable = false)
     @Size(max = 30)

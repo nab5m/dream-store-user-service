@@ -12,7 +12,7 @@ public class UserLoginCredentialsEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long userLoginCredentialsId;
+    private long userLoginCredentialsId;
 
     @ManyToOne
     @JoinColumn(name = "userLoginCategoryId", nullable = false)

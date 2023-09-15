@@ -8,7 +8,7 @@ public class KakaoUserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long kakaoUserId;
+    private long kakaoUserId;
 
     @ManyToOne
     @JoinColumn(name = "userLoginCategoryId", nullable = false)

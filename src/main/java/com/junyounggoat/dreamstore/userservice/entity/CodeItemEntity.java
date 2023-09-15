@@ -11,11 +11,11 @@ import org.hibernate.annotations.Generated;
 
 
 @Entity
-public class CodeEntity {
+public class CodeItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long codeId;
+    private long codeItemId;
 
     @ManyToOne
     @JoinColumn(name = "code_category_id", nullable = false)
@@ -27,15 +27,18 @@ public class CodeEntity {
     private String codeName;
 
     @ManyToOne
-    @JoinColumn(name = "parentCodeId")
-    private CodeEntity parentCode;
+    @JoinColumn(name = "parentCodeItemId")
+    private CodeItemEntity parentCodeItem;
+
+    @Column(nullable = false)
+    @NotNull
+    private int code;
 
     @Column(nullable = false)
     @Min(value = 0)
-    @NotNull
     @ColumnDefault("0")
     @Generated
-    private Long sortPriority = 0L;
+    private long sortPriority = 0L;
 
     @Embedded
     @JsonUnwrapped

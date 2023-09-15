@@ -11,7 +11,7 @@ public class CodeCategoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long codeCategoryId;
+    private long codeCategoryId;
 
     @Column(nullable = false, unique = true, updatable = false, length = 30)
     @NotBlank

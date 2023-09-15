@@ -10,15 +10,15 @@ public class CodeGroupItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long codeGroupItemId;
+    private long codeGroupItemId;
 
     @ManyToOne
     @JoinColumn(name = "codeGroupId", nullable = false)
     private CodeGroupEntity codeGroup;
 
     @ManyToOne
-    @JoinColumn(name = "codeId", nullable = false)
-    private CodeEntity code;
+    @JoinColumn(name = "codeItemId", nullable = false)
+    private CodeItemEntity codeItem;
 
     @Embedded
     @JsonUnwrapped

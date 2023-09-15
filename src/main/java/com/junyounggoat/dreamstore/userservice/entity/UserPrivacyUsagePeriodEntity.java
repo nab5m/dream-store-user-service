@@ -12,7 +12,7 @@ public class UserPrivacyUsagePeriodEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long userPrivacyUsagePeriodId;
+    private long userPrivacyUsagePeriodId;
 
     @ManyToOne
     @JoinColumn(name = "userId", nullable = false)

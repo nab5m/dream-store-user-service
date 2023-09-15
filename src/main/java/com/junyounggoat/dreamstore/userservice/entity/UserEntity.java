@@ -13,15 +13,16 @@ public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private Long userId;
+    private long userId;
 
-    @ManyToOne
-    @JoinColumn(name = "userNonmemberFlagCodeId", nullable = false)
-    private CodeEntity userNonmemberFlag;
+    @Column(nullable = false)
+    private boolean userNonmemberFlag;
 
+    /*
     @ManyToOne
-    @JoinColumn(name = "loginBlockFlagCodeId", nullable = false)
-    private CodeEntity loginBlockFlag;
+    @JoinColumn(name = "activeUserLoginBlockPeriodId", nullable = false)
+    private UserLoginBlockPeriod activeUserLoginBlockPeriod;
+     */
 
     @Column(nullable = false, length = 30)
     @Size(min = 2, max = 30)
@@ -44,9 +45,7 @@ public class UserEntity {
     private UserShippingAddress userShippingAddress;
      */
 
-    @ManyToOne
-    @JoinColumn(name = "userGenderCodeId")
-    private CodeEntity userGender;
+    private int userGenderCode;
 
     private LocalDate userBirthDate;
 
