@@ -1,12 +1,14 @@
 package com.junyounggoat.dreamstore.userservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.junyounggoat.dreamstore.userservice.validation.UserValidation;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
+
+import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
 
 @Entity
 @Builder(toBuilder = true)
@@ -14,7 +16,7 @@ import java.time.LocalDate;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Min(value = 0)
+    @UserId
     private long userId;
 
     @Column(nullable = false)
@@ -26,24 +28,20 @@ public class User {
     private UserLoginBlockPeriod activeUserLoginBlockPeriod;
      */
 
-    @Column(nullable = false, length = 30)
-    @Size(min = 2, max = 30)
-    @NotBlank
+    @Column(nullable = false, length = USER_PERSON_NAME_MAX_LENGTH)
+    @UserPersonName
     private String userPersonName;
 
-    @Column(nullable = false, length = 320)
-    @Size(max = 320)
-    @NotBlank
-    @Pattern(regexp = "^[\\w._%+-]+@[\\w._-]+\\.[\\w]{2,}$")
+    @Column(nullable = false, length = USER_EMAIL_ADDRESS_MAX_LENGTH)
+    @UserEmailAddress
     private String userEmailAddress;
 
-    @Column(nullable = false, length = 15)
-    @NotBlank
-    @Pattern(regexp = "^\\d{8,15}$")
+    @Column(nullable = false, length = USER_PHONE_NUMBER_MAX_LENGTH)
+    @UserPhoneNumber
     private String userPhoneNumber;
 
-    @Column(length = 30)
-    @Size(min = 1, max = 30)
+    @Column(length = USER_NICKNAME_MAX_LENGTH)
+    @UserNickname
     private String userNickname;
 
     /* ToDo: 사용자배송주소
@@ -55,6 +53,5 @@ public class User {
     private LocalDate userBirthDate;
 
     @Embedded
-    @JsonUnwrapped
     private TimestampEmbeddable timestamp;
 }

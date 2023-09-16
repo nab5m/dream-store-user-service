@@ -2,10 +2,13 @@ package com.junyounggoat.dreamstore.userservice.dto;
 
 import com.junyounggoat.dreamstore.userservice.entity.User;
 import com.junyounggoat.dreamstore.userservice.entity.UserLoginCredentials;
+import com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation;
+import com.junyounggoat.dreamstore.userservice.validation.UserValidation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 
@@ -13,19 +16,53 @@ import java.util.List;
 @Builder
 @Getter
 public class CreateUserRequestDTO {
-    @RequestDTOBlackList
     @Valid
     @NotNull
-    private User user;
+    private UserDTO user;
 
-    @RequestDTOBlackList
     @Valid
     @NotNull
-    private UserLoginCredentials userLoginCredentials;
+    private UserLoginCredentialsDTO userLoginCredentials;
 
     @NotEmpty
     private List<Integer> userAgreementItemCodeList;
 
     @NotNull
     private Integer userPrivacyUsagePeriodCode;
+
+    @Builder
+    @Getter
+    public static class UserDTO {
+        @UserValidation.UserPersonName
+        private String userPersonName;
+
+        @UserValidation.UserEmailAddress
+        private String userEmailAddress;
+
+        @UserValidation.UserPhoneNumber
+        private String userPhoneNumber;
+
+        public User.UserBuilder toUserBuilder() {
+            return User.builder()
+                    .userPersonName(userPersonName)
+                    .userEmailAddress(userEmailAddress)
+                    .userPhoneNumber(userPhoneNumber);
+        }
+    }
+
+    @Builder
+    @Getter
+    public static class UserLoginCredentialsDTO {
+        @UserLoginCredentialsValidation.LoginUserName
+        private String loginUserName;
+
+        @UserLoginCredentialsValidation.RawLoginUserPassword
+        private String rawLoginUserPassword;
+
+        public UserLoginCredentials.UserLoginCredentialsBuilder toUserLoginCredentialsBuilder(PasswordEncoder passwordEncoder) {
+            return UserLoginCredentials.builder()
+                    .loginUserName(loginUserName)
+                    .loginUserPassword(passwordEncoder.encode(rawLoginUserPassword));
+        }
+    }
 }

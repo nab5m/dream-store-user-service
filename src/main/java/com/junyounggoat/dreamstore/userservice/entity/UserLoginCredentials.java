@@ -1,12 +1,13 @@
 package com.junyounggoat.dreamstore.userservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.*;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.Builder;
 import lombok.Getter;
+
+import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
+import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_PASSWORD_MAX_LENGTH;
 
 @Entity
 @Builder(toBuilder = true)
@@ -14,35 +15,21 @@ import lombok.Getter;
 public class UserLoginCredentials {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Min(value = 0)
+    @UserLoginCredentialsId
     private long userLoginCredentialsId;
 
     @ManyToOne
     @JoinColumn(name = "userLoginCategoryId", nullable = false)
     private UserLoginCategory userLoginCategory;
 
-    @Column(length = 30)
-    @NotBlank
-    @Pattern(
-            regexp = "^[\\w가-힣\\{\\}\\[\\]\\/?.,;:|\\)*~`!^\\-+<>@\\#$%&\\\\\\=\\(\\'\\\"]{4,20}$",
-            message = "영문, 숫자, 한글, 특수문자로 4~20자를 입력해주세요."
-            // ToDo: 메시지 관리 파일 분리 필요
-    )
+    @Column(length = LOGIN_USER_NAME_MAX_LENGTH)
+    @LoginUserName
     private String loginUserName;
 
-    @Column(nullable = false, length = 72)
+    @Column(nullable = false, length = LOGIN_USER_PASSWORD_MAX_LENGTH)
+    @LoginUserPassword
     private String loginUserPassword;
 
-    /* DTO와 엔티티를 분리하고 검증 어노테이션만 따로 정의하고 재사용할걸 그랬나 싶다. */
-    @Transient
-    @NotBlank
-    @Pattern(
-            regexp = "^(?=.*[a-zA-Z])(?=.*[\\{\\}\\[\\]\\/?.,;:|\\)*~`!^\\-+<>@\\#$%&\\\\\\=\\(\\'\\\"])(?=.*[0-9]).{8,50}$",
-            message = "영문, 숫자, 특수문자를 모두 포함해서 8~50자를 입력해주세요."
-    )
-    private String rawLoginUserPassword;
-
     @Embedded
-    @JsonUnwrapped
     private TimestampEmbeddable timestamp;
 }

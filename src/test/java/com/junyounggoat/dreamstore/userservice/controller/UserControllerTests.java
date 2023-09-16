@@ -33,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,9 +46,39 @@ public class UserControllerTests {
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
     private final Map<UserLoginCategoryCode, String> createUserRequestJsonString = Map.of(
-            UserLoginCategoryCode.userLoginCredentials, "{ \"user\": { \"userPersonName\": \"테스터\", \"userEmailAddress\": \"tester1@example.com\", \"userPhoneNumber\": \"01000000001\" }, \"userLoginCredentials\": { \"loginUserName\": \"테스터1\", \"rawLoginUserPassword\": \"tester123%!!\" }, \"userAgreementItemCodeList\": [0, 1, 2], \"userPrivacyUsagePeriodCode\": 31536000 }",
-            UserLoginCategoryCode.kakaoUser, "{ \"user\": { \"userPersonName\": \"테스터\", \"userEmailAddress\": \"tester1@example.com\", \"userPhoneNumber\": \"01000000001\" }, \"kakaoUser\": { }, \"userAgreementItemCodeList\": [0, 1, 2], \"userPrivacyUsagePeriodCode\": 31536000 }",
-            UserLoginCategoryCode.naverUser, "{ \"user\": { \"userPersonName\": \"테스터\", \"userEmailAddress\": \"tester1@example.com\", \"userPhoneNumber\": \"01000000001\" }, \"naverUser\": { }, \"userAgreementItemCodeList\": [0, 1, 2], \"userPrivacyUsagePeriodCode\": 31536000 }"
+            UserLoginCategoryCode.userLoginCredentials, "{\n" +
+                    "    \"user\": {\n" +
+                    "        \"userPersonName\": \"테스터\",\n" +
+                    "        \"userEmailAddress\": \"tester1@example.com\",\n" +
+                    "        \"userPhoneNumber\": \"01000000001\"\n" +
+                    "    },\n" +
+                    "    \"userLoginCredentials\": {\n" +
+                    "        \"loginUserName\": \"테스터1\",\n" +
+                    "        \"rawLoginUserPassword\": \"tester123%!!\"\n" +
+                    "    },\n" +
+                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
+                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
+                    "}",
+            UserLoginCategoryCode.kakaoUser, "{\n" +
+                    "    \"user\": {\n" +
+                    "        \"userPersonName\": \"테스터\",\n" +
+                    "        \"userEmailAddress\": \"tester1@example.com\",\n" +
+                    "        \"userPhoneNumber\": \"01000000001\"\n" +
+                    "    },\n" +
+                    "    \"kakaoUser\": {},\n" +
+                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
+                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
+                    "}",
+            UserLoginCategoryCode.naverUser, "{\n" +
+                    "    \"user\": {\n" +
+                    "        \"userPersonName\": \"테스터\",\n" +
+                    "        \"userEmailAddress\": \"tester1@example.com\",\n" +
+                    "        \"userPhoneNumber\": \"01000000001\"\n" +
+                    "    },\n" +
+                    "    \"naverUser\": {},\n" +
+                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
+                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
+                    "}"
     );
 
     private final int USER_PERSON_NAME_MIN_LENGTH = 2;
@@ -81,11 +112,12 @@ public class UserControllerTests {
     }
 
 
+    /* ToDo: UserLoginCategoryCode에 따라 endPoint와 documentName 가져오도록 수정 */
     private ResultActions assertPostRequestBadRequest(String endPoint, String requestData) {
         try {
             return requestPost(endPoint, requestData)
                     .andExpect(status().isBadRequest())
-                    .andDo(document("createUser"));
+                    .andDo(document("createUser", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint())));
         } catch (Exception e) {
             // TIL: RuntimeException을 던져도 테스트 실패함
             throw new RuntimeException(e);
@@ -96,7 +128,7 @@ public class UserControllerTests {
         try {
             return requestPost(endPoint, requestData)
                     .andExpect(status().isCreated())
-                    .andDo(document("createUser"));
+                    .andDo(document("createUser", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint())));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

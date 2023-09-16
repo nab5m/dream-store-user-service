@@ -34,10 +34,8 @@ public class UserService {
     public CreateUserResponseDTO createUserByLoginCredentials(CreateUserRequestDTO createUserRequestDTO) {
         CreateMemberCreatedEntity createMemberCreatedEntity = createMember(createUserRequestDTO, UserLoginCategoryCode.userLoginCredentials);
 
-        UserLoginCredentials userLoginCredentialsRequest = createUserRequestDTO.getUserLoginCredentials();
-        createUserLoginCredentials(userLoginCredentialsRequest
-                .toBuilder()
-                .loginUserPassword(passwordEncoder.encode(userLoginCredentialsRequest.getRawLoginUserPassword()))
+        createUserLoginCredentials(createUserRequestDTO.getUserLoginCredentials()
+                .toUserLoginCredentialsBuilder(passwordEncoder)
                 .userLoginCategory(createMemberCreatedEntity.getUserLoginCategory())
                 .build());
 
@@ -50,7 +48,8 @@ public class UserService {
     private CreateMemberCreatedEntity createMember(CreateUserRequestDTO createUserRequestDTO, UserLoginCategoryCode userLoginCategoryCode) {
         // user 엔티티
         User createdUser = userRepository.insertUser(
-                createUserRequestDTO.getUser().toBuilder()
+                createUserRequestDTO.getUser()
+                        .toUserBuilder()
                         .userNonmemberFlag(false)
                         .build()
         );
