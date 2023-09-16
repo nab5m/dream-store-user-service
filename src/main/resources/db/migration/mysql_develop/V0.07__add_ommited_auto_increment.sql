@@ -1,0 +1,13 @@
+ALTER TABLE naver_user
+    MODIFY COLUMN naver_user_id int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE kakao_user
+    MODIFY COLUMN kakao_user_id int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE user_agreement_item
+    MODIFY COLUMN user_agreement_item_id int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+SET FOREIGN_KEY_CHECKS=0;
+ALTER TABLE user_login_block_period
+    MODIFY COLUMN user_login_block_period_id int UNSIGNED NOT NULL AUTO_INCREMENT;
+SET FOREIGN_KEY_CHECKS=1;

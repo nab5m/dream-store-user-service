@@ -18,7 +18,7 @@ ALTER TABLE `user`
     RENAME COLUMN login_block_flag_code_id TO active_user_login_block_period_id;
 
 ALTER TABLE `user`
-    ALTER COLUMN active_user_login_block_period_id int;
+    ALTER COLUMN active_user_login_block_period_id int NULL;
 
 ALTER TABLE `user`
     RENAME COLUMN user_gender_code_id TO user_gender_code;

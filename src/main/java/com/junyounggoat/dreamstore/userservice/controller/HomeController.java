@@ -1,4 +1,4 @@
-package com.junyounggoat.dreamstore.userservice.controllers;
+package com.junyounggoat.dreamstore.userservice.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,16 +1,19 @@
-package com.junyounggoat.dreamstore.userservice.controllers;
+package com.junyounggoat.dreamstore.userservice.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
+import com.junyounggoat.dreamstore.userservice.dto.CreateUserResponseDTO;
+import com.junyounggoat.dreamstore.userservice.service.UserService;
+import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
@@ -25,25 +28,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
-@WebMvcTest
+@WebMvcTest(UserController.class)
 public class UserControllerTests {
     private MockMvc mockMvc;
-    @Autowired
-    private final JwtUtil jwtUtil;
+    @MockBean
+    private UserService userService;
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
-    private final Map<String, String> createUserRequestJsonString = Map.of(
-            "user_login_credentials", "{ \"user\": { \"user_person_name\": \"테스터1\", \"user_email_address\": \"tester1@example.com\", \"user_phone_number\": \"01000000001\" }, \"user_login_category_code_id\": 1, \"user_agreement_item_code_id_list\": [1, 2, 3], \"user_login_credentials\": { \"login_user_name\": \"tester1\", \"login_user_password\": \"testerPassword&#122\" }, \"user_privacy_usage_period\": { \"usage_start_date_time\": \"2023-09-10 14:14:00\", \"usage_end_date_time\": \"2024-09-09 23:59:59\" } }",
-            "kakao_user", "{ \"user\": { \"user_person_name\": \"테스터1\", \"user_email_address\": \"tester1@example.com\", \"user_phone_number\": \"01000000001\" }, \"user_login_category_code_id\": 1, \"user_agreement_item_code_id_list\": [1, 2, 3], \"kakao_user\": {}, \"user_privacy_usage_period\": { \"usage_start_date_time\": \"2023-09-10 14:14:00\", \"usage_end_date_time\": \"2024-09-09 23:59:59\" } }",
-            "naver_user", "{ \"user\": { \"user_person_name\": \"테스터1\", \"user_email_address\": \"tester1@example.com\", \"user_phone_number\": \"01000000001\" }, \"user_login_category_code_id\": 1, \"user_agreement_item_code_id_list\": [1, 2, 3], \"naver_user\": {}, \"user_privacy_usage_period\": { \"usage_start_date_time\": \"2023-09-10 14:14:00\", \"usage_end_date_time\": \"2024-09-09 23:59:59\" } }"
+    private final Map<UserLoginCategoryCode, String> createUserRequestJsonString = Map.of(
+            UserLoginCategoryCode.userLoginCredentials, "{ \"user\": { \"userPersonName\": \"테스터\", \"userEmailAddress\": \"tester1@example.com\", \"userPhoneNumber\": \"01000000001\" }, \"userLoginCredentials\": { \"loginUserName\": \"테스터1\", \"rawLoginUserPassword\": \"tester123%!!\" }, \"userAgreementItemCodeList\": [0, 1, 2], \"userPrivacyUsagePeriodCode\": 31536000 }",
+            UserLoginCategoryCode.kakaoUser, "{ \"user\": { \"userPersonName\": \"테스터\", \"userEmailAddress\": \"tester1@example.com\", \"userPhoneNumber\": \"01000000001\" }, \"kakaoUser\": { }, \"userAgreementItemCodeList\": [0, 1, 2], \"userPrivacyUsagePeriodCode\": 31536000 }",
+            UserLoginCategoryCode.naverUser, "{ \"user\": { \"userPersonName\": \"테스터\", \"userEmailAddress\": \"tester1@example.com\", \"userPhoneNumber\": \"01000000001\" }, \"naverUser\": { }, \"userAgreementItemCodeList\": [0, 1, 2], \"userPrivacyUsagePeriodCode\": 31536000 }"
     );
 
     private final int USER_PERSON_NAME_MIN_LENGTH = 2;
@@ -54,28 +58,32 @@ public class UserControllerTests {
 
     private final int LOGIN_USER_NAME_MIN_LENGTH = 4;
     private final int LOGIN_USER_NAME_MAX_LENGTH = 30;
-    private final int LOGIN_USER_PASSWORD_MIN_LENGTH = 8;
-    private final int LOGIN_USER_PASSWORD_MAX_LENGTH = 50;
 
     @BeforeEach
     private void setup(WebApplicationContext webApplicationContext, RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(documentationConfiguration(restDocumentation))
                 .build();
+
+        given(userService.createUserByLoginCredentials(any()))
+                .willReturn(CreateUserResponseDTO.builder()
+                        .accessToken(JwtUtil.createAccessToken(1L))
+                        .build());
     }
 
-    private ResultActions createUser(String requestData) throws Exception {
-        logger.debug("assertRequiredFieldResponse > requestData : " + requestData);
+    private ResultActions requestPost(String endpoint, String requestData) throws Exception {
+        logger.debug("requestPost > requestData : " + requestData);
 
         // ToDo: 에러 메시지 검증
-        return this.mockMvc.perform(post("/api/v1/user")
-                        .content(requestData)
-                        .contentType(MediaType.APPLICATION_JSON));
+        return this.mockMvc.perform(post(endpoint)
+                .content(requestData)
+                .contentType(MediaType.APPLICATION_JSON));
     }
 
-    private ResultActions assertCreateUserBadRequest(String requestData) {
+
+    private ResultActions assertPostRequestBadRequest(String endPoint, String requestData) {
         try {
-            return createUser(requestData)
+            return requestPost(endPoint, requestData)
                     .andExpect(status().isBadRequest())
                     .andDo(document("createUser"));
         } catch (Exception e) {
@@ -84,15 +92,16 @@ public class UserControllerTests {
         }
     }
 
-    private ResultActions assertCreateUserSuccess(String requestData) {
+    private ResultActions assertPostRequestCreated(String endPoint, String requestData) {
         try {
-            return createUser(requestData)
+            return requestPost(endPoint, requestData)
                     .andExpect(status().isCreated())
                     .andDo(document("createUser"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
 
     private String removeJsonKey(String jsonString, String removeKey)
     {
@@ -114,21 +123,20 @@ public class UserControllerTests {
     @DisplayName("사용자 생성 시 필수 값 검증")
     void createUserValidateRequiredFields() throws Exception {
         // ToDo: enum으로 바꿀 수 있을지
-        String jsonString = createUserRequestJsonString.get("user_login_credentials");
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         Map<String, Object> requiredFieldsBlankValueMap = Map.of(
-                "$.user.user_person_name", "",
-                "$.user.user_email_address", "",
-                "$.user.user_phone_number", ""
+                "$.user.userPersonName", "",
+                "$.user.userEmailAddress", "",
+                "$.user.userPhoneNumber", "",
+                "$.userAgreementItemCodeList", "[]",
+                "$.userPrivacyUsagePeriodCode", ""
         );
         List<String> requiredFieldsRemoveKeyList = List.of(
-                "$.user.user_person_name",
-                "$.user.user_email_address",
-                "$.user.user_phone_number",
-                "$.user_login_category_code_id",
-                "$.user_agreement_item_code_id_list",
-                "$.user_privacy_usage_period",
-                "$.user_privacy_usage_period.usage_end_date_time",
-                "$.user_privacy_usage_period.usage_start_date_time"
+                "$.user.userPersonName",
+                "$.user.userEmailAddress",
+                "$.user.userPhoneNumber",
+                "$.userAgreementItemCodeList",
+                "$.userPrivacyUsagePeriodCode"
         );
 
         List<String> requestDataByUpdatingKeys = requiredFieldsBlankValueMap
@@ -140,21 +148,21 @@ public class UserControllerTests {
                 .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
-                .forEach(this::assertCreateUserBadRequest);
+                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user", requestData));
     }
 
     @Test
     @DisplayName("로그인사용자이름으로 사용자 생성 시 필수 값 검증")
     void createUserByLoginUserNameValidateRequiredFields() {
-        String jsonString = createUserRequestJsonString.get("user_login_credentials");
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         Map<String, Object> requiredFieldsBlankValueMap = Map.of(
-                "$.user_login_credentials.login_user_name", "",
-                "$.user_login_credentials.login_user_password", ""
+                "$.userLoginCredentials.loginUserName", "",
+                "$.userLoginCredentials.rawLoginUserPassword", ""
         );
         List<String> requiredFieldsRemoveKeyList = List.of(
-                "$.user_login_credentials",
-                "$.user_login_credentials.login_user_name",
-                "$.user_login_credentials.login_user_password"
+                "$.userLoginCredentials",
+                "$.userLoginCredentials.loginUserName",
+                "$.userLoginCredentials.rawLoginUserPassword"
         );
 
 
@@ -167,49 +175,49 @@ public class UserControllerTests {
                 .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
-                .forEach(this::assertCreateUserBadRequest);
+                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user", requestData));
     }
 
     @Test
     @DisplayName("카카오사용자로 사용자 생성 시 필수 값 검증")
     void createUserByKakaoUserValidateRequiredFields() throws Exception {
-        String jsonString = createUserRequestJsonString.get("kakao_user");
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.kakaoUser);
         List<String> requiredFieldsRemoveKeyList = List.of(
-                "$.kakao_user"
+                "$.kakaoUser"
         );
 
         List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
                 .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         requestDataByRemovingKeys
-                .forEach(this::assertCreateUserBadRequest);
+                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user/kakao", requestData));
     }
 
     @Test
     @DisplayName("네이버사용자로 사용자 생성 시 필수 값 검증")
     void createUserByNaverUserValidateRequiredFields() throws Exception {
-        String jsonString = createUserRequestJsonString.get("naver_user");
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
         List<String> requiredFieldsRemoveKeyList = List.of(
-                "$.naver_user"
+                "$.naverUser"
         );
 
         List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
                 .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         requestDataByRemovingKeys
-                .forEach(this::assertCreateUserBadRequest);
+                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user/naver", requestData));
     }
 
     @Test
     @DisplayName("사용자 생성 시 중복된 사용자 검증")
-    void createUserValidateDuplicatedUser() {
-        String jsonString = createUserRequestJsonString.get("user_login_credentials");
-        assertCreateUserSuccess(jsonString);
+    void createUserValidateDuplicatedUser() throws Exception {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+        assertPostRequestCreated("/api/v1/user", jsonString);
 
         Map<String, String> notDuplicatedUserValues = Map.of(
-                "$.user.user_email_address", "new_tester@example.com",
-                "$.user.user_phone_number", "01000000002",
-                "$.user_login_credentials.login_user_name", "new_tester"
+                "$.user.userEmailAddress", "new_tester@example.com",
+                "$.user.userPhoneNumber", "01000000002",
+                "$.userLoginCredentials.loginUserName", "new_tester"
         );
         List<Map.Entry<String, String>> notDuplicatedUserValueEntries = notDuplicatedUserValues.entrySet().stream().toList();
 
@@ -225,7 +233,7 @@ public class UserControllerTests {
                 requestData = updateJsonValue(requestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
             }
 
-            assertCreateUserBadRequest(jsonString);
+            assertPostRequestBadRequest("/api/v1/user", jsonString);
         }
 
         // 모든 필드를 중복 제거 후 요청
@@ -234,13 +242,13 @@ public class UserControllerTests {
             Map.Entry<String, String> jsonKeyValue = notDuplicatedUserValueEntries.get(currentIdx);
             notDuplicatedUserRequestData = updateJsonValue(notDuplicatedUserRequestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
         }
-        assertCreateUserSuccess(notDuplicatedUserRequestData);
+        assertPostRequestCreated("/api/v1/user", notDuplicatedUserRequestData);
     }
 
     @Test
     @DisplayName("사용자 생성 시 사용자 입력형식 검증")
     void createUserValidateMalformedUser() {
-        String jsonString = createUserRequestJsonString.get("user_login_credentials");
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         /*
         사용자사람이름: 글자수 제한 (최소, 최대)
         사용자이메일주소: 이메일주소 형식 ^[\w._%+-]+@[\w._-]+\.[\w]{2,}$ 에 맞는지, 최대 글자 320자
@@ -248,15 +256,15 @@ public class UserControllerTests {
         ToDo: 사용자동의항목: 필수값이 모두 포함되어 있는지 여부
          */
         Map<String, List<String>> malformedUserRequestDataMap = Map.of(
-                "$.user.user_person_name", List.of(
+                "$.user.userPersonName", List.of(
                         "김".repeat(USER_PERSON_NAME_MIN_LENGTH - 1),
                         "김".repeat(USER_PERSON_NAME_MAX_LENGTH + 1)),
-                "$.user.user_email_address", List.of(
+                "$.user.userEmailAddress", List.of(
                         "tester@co." + "a".repeat(USER_EMAIL_ADDRESS_MAX_LENGTH),
                         "tester@com",
                         "@com.com",
                         "tester@t.t"),
-                "$.user.user_phone_number", List.of(
+                "$.user.userPhoneNumber", List.of(
                         "1".repeat(USER_PHONE_NUMBER_MIN_LENGTH - 1),
                         "0".repeat(USER_PHONE_NUMBER_MAX_LENGTH + 1))
         );
@@ -265,7 +273,7 @@ public class UserControllerTests {
             List<String> values = jsonKeyValue.getValue();
             values.forEach(value -> {
                 String malformedUserRequestData = updateJsonValue(jsonString, jsonKeyValue.getKey(), value);
-                assertCreateUserBadRequest(malformedUserRequestData);
+                assertPostRequestBadRequest("/api/v1/user", malformedUserRequestData);
             });
         });
     }
@@ -273,7 +281,7 @@ public class UserControllerTests {
     @Test
     @DisplayName("사용자 생성 시 사용자 로그인 자격증명 입력형식 검증")
     void createUserValidateMalformedUserLoginCredentials() {
-        String jsonString = createUserRequestJsonString.get("user_login_credentials");
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         /*
         로그인사용자아이디: 영문, 숫자, 한글, 특수문자로 4~30자
             ^[\w가-힣\{\}\[\]\/?.,;:|\)*~`!^\-+<>@\#$%&\\\=\(\'\"]{4,30}$ 에 맞는지
@@ -281,11 +289,10 @@ public class UserControllerTests {
             ^(?=.*[a-zA-Z])(?=.*[\{\}\[\]\/?.,;:|\)*~`!^\-+<>@\#$%&\\\=\(\'\"])(?=.*[0-9]).{8,50}$ 에 맞는지
          */
         Map<String, List<String>> malformedUserRequestDataMap = Map.of(
-                "$.user_login_credentials.login_user_name", List.of(
+                "$.userLoginCredentials.loginUserName", List.of(
                         "김".repeat(LOGIN_USER_NAME_MIN_LENGTH - 1),
-                        "김".repeat(LOGIN_USER_NAME_MAX_LENGTH + 1),
-                        "영준KIM!@#"),
-                "$.user_login_credentials.login_user_password", List.of(
+                        "김".repeat(LOGIN_USER_NAME_MAX_LENGTH + 1)),
+                "$.userLoginCredentials.rawLoginUserPassword", List.of(
                         "a11kc##",
                         "a11kc##123".repeat(5) + "1",
                         "asdfasdf123123",
@@ -297,7 +304,7 @@ public class UserControllerTests {
             List<String> values = jsonKeyValue.getValue();
             values.forEach(value -> {
                 String malformedUserRequestData = updateJsonValue(jsonString, jsonKeyValue.getKey(), value);
-                assertCreateUserBadRequest(malformedUserRequestData);
+                assertPostRequestBadRequest("/api/v1/user", malformedUserRequestData);
             });
         });
     }
@@ -305,13 +312,12 @@ public class UserControllerTests {
     @Test
     @DisplayName("사용자 생성 시 성공 응답 JWT 검증")
     void createUserSuccessResponseIncludesJwt() throws UnsupportedEncodingException {
-        String jsonString = createUserRequestJsonString.get("user_login_credentials");
-        MvcResult mvcResult = assertCreateUserSuccess(jsonString).andReturn();
-
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+        MvcResult mvcResult = assertPostRequestCreated("/api/v1/user", jsonString).andReturn();
         DocumentContext documentContext = JsonPath.parse(mvcResult.getResponse().getContentAsString());
         String accessToken = documentContext.read("$.accessToken");
 
-        Long userId = Long.valueOf(jwtUtil.getClaims(accessToken).get("userId"));
+        long userId = ((Integer) JwtUtil.getClaims(accessToken).get("userId")).longValue();
         assertTrue(userId > 0, "jwt의 userId가 비정상적입니다.");
     }
 }

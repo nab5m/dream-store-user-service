@@ -11,7 +11,7 @@ import org.hibernate.annotations.Generated;
 
 
 @Entity
-public class CodeItemEntity {
+public class CodeItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
@@ -19,7 +19,7 @@ public class CodeItemEntity {
 
     @ManyToOne
     @JoinColumn(name = "code_category_id", nullable = false)
-    private CodeCategoryEntity codeCategory;
+    private CodeCategory codeCategory;
 
     @Column(nullable = false, length = 30)
     @NotBlank
@@ -28,7 +28,7 @@ public class CodeItemEntity {
 
     @ManyToOne
     @JoinColumn(name = "parentCodeItemId")
-    private CodeItemEntity parentCodeItem;
+    private CodeItem parentCodeItem;
 
     @Column(nullable = false)
     @NotNull

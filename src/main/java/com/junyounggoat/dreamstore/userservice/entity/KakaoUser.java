@@ -4,13 +4,13 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 
 @Entity
-public class NaverUserEntity {
+public class KakaoUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private long naverUserId;
+    private long kakaoUserId;
 
     @ManyToOne
     @JoinColumn(name = "userLoginCategoryId", nullable = false)
-    private UserLoginCategoryEntity userLoginCategory;
+    private UserLoginCategory userLoginCategory;
 }

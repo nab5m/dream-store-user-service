@@ -7,16 +7,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 @Entity
-public class CodeCategoryEntity {
+public class CodeGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private long codeCategoryId;
+    private long codeGroupId;
 
-    @Column(nullable = false, unique = true, updatable = false, length = 30)
-    @NotBlank
+    @Column(unique = true, nullable = false, length = 30, updatable = false)
     @Size(max = 30)
-    private String codeCategoryName;
+    @NotBlank
+    private String codeGroupName;
 
     @Embedded
     @JsonUnwrapped

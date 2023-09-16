@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
@@ -45,7 +47,8 @@ public class SecurityConfig {
                             builder.pattern(HttpMethod.GET, "/v3/api-docs"),
                             builder.pattern(HttpMethod.GET, "/v3/api-docs/*"),
                             builder.pattern(HttpMethod.GET, "/error"),
-                            builder.pattern(HttpMethod.GET, "/")
+                            builder.pattern(HttpMethod.GET, "/"),
+                            builder.pattern(HttpMethod.POST, "/api/v1/user")
                     ).permitAll()
                     .anyRequest().authenticated();
         });
@@ -65,5 +68,10 @@ public class SecurityConfig {
                     mvcMatcherBuilder.pattern("/error")
             );
         };
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

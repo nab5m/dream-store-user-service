@@ -1,4 +1,4 @@
-package com.junyounggoat.dreamstore.userservice.controllers;
+package com.junyounggoat.dreamstore.userservice.controller;
 
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
-@WebMvcTest
+@WebMvcTest(HomeController.class)
 public class HomeControllerTests {
     private MockMvc mockMvc;
 

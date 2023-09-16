@@ -54,7 +54,11 @@ spring:
       settings:
         web-allow-others: true
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;DATABASE_TO_LOWER=TRUE;
+  jpa:
+    properties:
+      hibernate:
+        auto_quote_keyword: true
   flyway:
     locations: classpath:/db/migration/h2
 ---

@@ -3,20 +3,22 @@ package com.junyounggoat.dreamstore.userservice.entity;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+
 
 @Entity
-public class CodeGroupEntity {
+public class CodeGroupItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Min(value = 0)
-    private long codeGroupId;
+    private long codeGroupItemId;
 
-    @Column(unique = true, nullable = false, length = 30, updatable = false)
-    @Size(max = 30)
-    @NotBlank
-    private String codeGroupName;
+    @ManyToOne
+    @JoinColumn(name = "codeGroupId", nullable = false)
+    private CodeGroup codeGroup;
+
+    @ManyToOne
+    @JoinColumn(name = "codeItemId", nullable = false)
+    private CodeItem codeItem;
 
     @Embedded
     @JsonUnwrapped
