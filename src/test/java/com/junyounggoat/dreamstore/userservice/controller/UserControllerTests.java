@@ -6,6 +6,7 @@ import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserResponseDTO;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
+import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,8 @@ public class UserControllerTests {
     private MockMvc mockMvc;
     @MockBean
     private UserService userService;
+    @MockBean
+    private UniqueColumnValidator uniqueColumnValidator;
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
     private final Map<UserLoginCategoryCode, String> createUserRequestJsonString = Map.of(

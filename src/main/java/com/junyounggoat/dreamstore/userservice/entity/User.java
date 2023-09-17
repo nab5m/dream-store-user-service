@@ -3,8 +3,10 @@ package com.junyounggoat.dreamstore.userservice.entity;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.junyounggoat.dreamstore.userservice.validation.UserValidation;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
@@ -12,6 +14,8 @@ import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.
 
 @Entity
 @Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 public class User {
     @Id

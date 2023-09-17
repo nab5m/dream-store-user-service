@@ -5,13 +5,18 @@ import com.junyounggoat.dreamstore.userservice.constant.UserPrivacyUsagePeriodCo
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 import static com.junyounggoat.dreamstore.userservice.constant.DateTimeConstants.*;
 
 @Entity
+@NoArgsConstructor
+@Getter
 public class UserPrivacyUsagePeriod {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

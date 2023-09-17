@@ -2,10 +2,16 @@ package com.junyounggoat.dreamstore.userservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Builder
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 public class UserAgreementItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

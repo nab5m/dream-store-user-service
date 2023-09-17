@@ -25,11 +25,11 @@ public abstract class UserControllerDocs {
     @RequestBody(
             description = "<h3>사용자사람이름</h3>" +
                     USER_PERSON_NAME_MESSAGE +
-                    "<h3>사용자이메일주소</h3>" +
+                    "<h3>사용자이메일주소 (UNIQUE)</h3>" +
                     USER_EMAIL_ADDRESS_MESSAGE +
-                    "<h3>사용자휴대폰번호</h3>" +
+                    "<h3>사용자휴대폰번호 (UNIQUE)</h3>" +
                     USER_PHONE_NUMBER_MESSAGE +
-                    "<h3>로그인사용자이름</h3>" +
+                    "<h3>로그인사용자이름 (UNIQUE)</h3>" +
                     LOGIN_USER_NAME_MESSAGE +
                     "<h3>로그인사용자비밀번호</h3>" +
                     RAW_LOGIN_USER_PASSWORD_MESSAGE +
