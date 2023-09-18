@@ -15,6 +15,8 @@ import org.springframework.validation.Validator;
 @Component
 @RequiredArgsConstructor
 public class UniqueColumnValidator implements Validator {
+    private static final String ERROR_CODE = "duplication";
+
     private final UserRepository userRepository;
 
     @Builder
@@ -45,10 +47,11 @@ public class UniqueColumnValidator implements Validator {
     private void validateUniqueUserEmailAddress(String field, String userEmailAddress, Errors errors) {
         User user = userRepository.findUserByUserEmailAddress(userEmailAddress);
         if (user != null) {
+            String ERROR_MESSAGE = "이미 사용 중인 이메일 주소입니다.";
             try {
-                errors.rejectValue(field, "duplication", "이미 사용 중인 이메일 주소입니다.");
+                errors.rejectValue(field, ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
-                errors.reject("duplication", "이미 사용 중인 이메일 주소입니다.");
+                errors.reject(ERROR_CODE, ERROR_MESSAGE);
             }
         }
     }
@@ -56,10 +59,11 @@ public class UniqueColumnValidator implements Validator {
     private void validateUniqueUserPhoneNumber(String field, String userPhoneNumber, Errors errors) {
         User user = userRepository.findUserByUserPhoneNumber(userPhoneNumber);
         if (user != null) {
+            String ERROR_MESSAGE = "이미 사용 중인 휴대폰 번호입니다.";
             try {
-                errors.rejectValue(field, "duplication", "이미 사용 중인 휴대폰 번호입니다.");
+                errors.rejectValue(field, ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
-                errors.reject("duplication", "이미 사용 중인 휴대폰 번호입니다.");
+                errors.reject(ERROR_CODE, ERROR_MESSAGE);
             }
         }
     }
@@ -67,10 +71,11 @@ public class UniqueColumnValidator implements Validator {
     private void validateUniqueLoginUserName(String field, String loginUserName, Errors errors) {
         UserLoginCredentials userLoginCredentials = userRepository.findUserLoginCredentialsByLoginUserName(loginUserName);
         if (userLoginCredentials != null) {
+            String ERROR_MESSAGE = "이미 사용 중인 아이디입니다.";
             try {
-                errors.rejectValue(field, "duplication", "이미 사용 중인 아이디입니다.");
+                errors.rejectValue(field, ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
-                errors.reject("duplication", "이미 사용 중인 아이디입니다.");
+                errors.reject(ERROR_CODE, ERROR_MESSAGE);
             }
         }
     }
