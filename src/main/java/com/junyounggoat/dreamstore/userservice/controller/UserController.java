@@ -1,10 +1,13 @@
 package com.junyounggoat.dreamstore.userservice.controller;
 
+import com.junyounggoat.dreamstore.userservice.constant.CodeCategoryName;
 import com.junyounggoat.dreamstore.userservice.constant.UniqueColumn;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserResponseDTO;
+import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
+import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
 import com.junyounggoat.dreamstore.userservice.validation.NotValidException;
 import com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementItemValidator;
 import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
@@ -15,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @RestController
@@ -25,6 +29,7 @@ public class UserController {
     private final UserService userService;
     private final UniqueColumnValidator uniqueColumnValidator;
     private final RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
+    private final CodeExistValidator codeExistValidator;
 
     @PostMapping("")
     @ResponseStatus(code = HttpStatus.CREATED)
@@ -38,8 +43,28 @@ public class UserController {
         validateUniqueUserPhoneNumber("user.userPhoneNumber", createUserRequestDTO.getUser().getUserPhoneNumber(), errors);
         validateUniqueLoginUserName("userLoginCredentials.loginUserName", createUserRequestDTO.getUserLoginCredentials().getLoginUserName(), errors);
 
+        // 이렇게 검증이 필요하다면 그냥 fk를 걸었지 싶다
+        List<CodeExistValidator.TargetCodeItem> usedCodeList = new LinkedList<>();
+        createUserRequestDTO.getUserAgreementItemCodeList().forEach((userAgreementItemCode) -> {
+            usedCodeList.add(CodeExistValidator.TargetCodeItem.builder()
+                    .codeItem(CodeCategoryNameAndCodeName.builder()
+                            .codeCategoryName(CodeCategoryName.USER_AGREEMENT_ITEM.getName())
+                            .code(userAgreementItemCode)
+                            .build())
+                    .field("userAgreementItemCodeList")
+                    .build());
+        });
+
+        usedCodeList.add(CodeExistValidator.TargetCodeItem.builder()
+                .codeItem(CodeCategoryNameAndCodeName.builder()
+                        .codeCategoryName(CodeCategoryName.USER_PRIVACY_USAGE_PERIOD.getName())
+                        .code(createUserRequestDTO.getUserPrivacyUsagePeriodCode())
+                        .build())
+                .field("userPrivacyUsagePeriodCode")
+                .build());
+
+        validateCodeExists(usedCodeList, errors);
         validateRequiredUserAgreementItem("userAgreementItemCodeList", createUserRequestDTO.getUserAgreementItemCodeList(), errors);
-        // ToDo: 사용자개인정보사용기간코드 검증
 
         if (errors.hasErrors()) {
             throw NotValidException.builder().errors(errors).build();
@@ -87,6 +112,15 @@ public class UserController {
                 RequiredUserAgreementItemValidator.Target.builder()
                         .field(field)
                         .targetCodeList(codeList)
+                        .build(),
+                errors
+        );
+    }
+
+    private void validateCodeExists(List<CodeExistValidator.TargetCodeItem> codeItemList, Errors errors) {
+        codeExistValidator.validate(
+                CodeExistValidator.Target.builder()
+                        .targetCodeList(codeItemList)
                         .build(),
                 errors
         );
