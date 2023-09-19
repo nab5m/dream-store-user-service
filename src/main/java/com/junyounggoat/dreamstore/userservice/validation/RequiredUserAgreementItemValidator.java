@@ -37,7 +37,7 @@ public class RequiredUserAgreementItemValidator implements Validator {
         Target target = (Target) targetObject;
 
         List<Integer> baseCodeList = codeRepository.findCodeListByCodeGroupName(CodeGroupName.REQUIRED_USER_AGREEMENT_ITEM);
-        if (!new HashSet<>(baseCodeList).containsAll(target.getTargetCodeList())) {
+        if (!new HashSet<>(target.getTargetCodeList()).containsAll(baseCodeList)) {
             String ERROR_MESSAGE = "필수 동의항목을 체크하지 않았습니다.";
 
             try {
