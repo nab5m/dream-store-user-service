@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 import java.util.LinkedList;
@@ -95,6 +96,12 @@ public class UserRepository {
                         .and(qUserLoginCredentialsIsNotDeleted)
                         .and(qUserLoginCategoryIsNotDeleted)
                         .and(qUserIsNotDeleted))
+                .fetchOne();
+    }
+
+    public @Nullable User findUserByUserId(Long userId) {
+        return queryFactory.selectFrom(qUser)
+                .where(qUser.userId.eq(userId).and(qUserIsNotDeleted))
                 .fetchOne();
     }
 }

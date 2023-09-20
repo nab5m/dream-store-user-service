@@ -2,6 +2,7 @@ package com.junyounggoat.dreamstore.userservice.config;
 
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.RequiredTypeException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -24,6 +25,7 @@ public class JwtFilter extends GenericFilterBean {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        // ToDo: 에외처리를 더 깔끔하게 할 수 없을까?
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
         String token = resolveToken(httpServletRequest);
         if (token == null) {
@@ -37,10 +39,18 @@ public class JwtFilter extends GenericFilterBean {
             return;
         }
 
-        UserDetails userDetails = User.builder()
-                .username(claims.get(JWT_CLAIM_USER_ID, Long.class).toString())
-                .password(token)
-                .build();
+        UserDetails userDetails;
+        try {
+             userDetails = User.builder()
+                    .username(claims.get(JWT_CLAIM_USER_ID, Long.class).toString())
+                    .password(token)
+                    .build();
+        } catch (RequiredTypeException e) {
+            logger.info("TypeCastUserId Failed : " + token);
+
+            chain.doFilter(request, response);
+            return;
+        }
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);

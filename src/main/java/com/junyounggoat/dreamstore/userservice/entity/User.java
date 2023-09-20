@@ -1,7 +1,5 @@
 package com.junyounggoat.dreamstore.userservice.entity;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.junyounggoat.dreamstore.userservice.validation.UserValidation;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
 
@@ -58,4 +57,14 @@ public class User {
 
     @Embedded
     private TimestampEmbeddable timestamp;
+
+    // ToDo: fk인 동시에 unique키 부여
+    @OneToOne(mappedBy = "user")
+    private UserPrivacyUsagePeriod userPrivacyUsagePeriod;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserAgreementItem> userAgreementItemList;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserLoginCategory> userLoginCategoryList;
 }

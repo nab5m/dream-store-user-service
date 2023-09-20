@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
+
+import java.time.LocalDateTime;
 
 
 @Entity
@@ -31,4 +34,20 @@ public class UserLoginCategory {
     private CreationDateTime creationDateTime;
 
     private DeletionDateTime deletionDateTime;
+
+    public @Nullable LocalDateTime getCreationDateTime() {
+        if (creationDateTime == null) {
+            return null;
+        }
+
+        return creationDateTime.getCreationDateTime();
+    }
+
+    public @Nullable LocalDateTime getDeletionDateTime() {
+        if (deletionDateTime == null) {
+            return null;
+        }
+
+        return deletionDateTime.getDeletionDateTime();
+    }
 }

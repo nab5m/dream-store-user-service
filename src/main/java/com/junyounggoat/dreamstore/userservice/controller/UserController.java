@@ -2,31 +2,42 @@ package com.junyounggoat.dreamstore.userservice.controller;
 
 import com.junyounggoat.dreamstore.userservice.constant.CodeCategoryName;
 import com.junyounggoat.dreamstore.userservice.constant.UniqueColumn;
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
-import com.junyounggoat.dreamstore.userservice.dto.LoginRequestDTO;
+import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
+import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
 import com.junyounggoat.dreamstore.userservice.validation.NotValidException;
 import com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementItemValidator;
 import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.RequiredTypeException;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.junyounggoat.dreamstore.userservice.config.OpenApiConfig.SECURITY_SCHEME_NAME;
+import static com.junyounggoat.dreamstore.userservice.util.JwtUtil.JWT_CLAIM_USER_ID;
+
 @RestController
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 @Tag(name = "UserController", description = "사용자 컨트롤러")
 public class UserController {
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
     private final UserService userService;
     private final UniqueColumnValidator uniqueColumnValidator;
     private final RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
@@ -143,5 +154,49 @@ public class UserController {
         }
 
         return response;
+    }
+
+    @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
+    public static class UnAuthorizedException extends RuntimeException {
+        public UnAuthorizedException(String message) {
+            super(message);
+        }
+    }
+
+    @GetMapping("/mine")
+    @UserControllerDocs.GetMyUserProfileDocs
+    public MyUserProfileDTO getMyUserProfile(@AuthenticationPrincipal UserDetails userDetails) {
+        // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
+        String ERROR_MESSAGE = "로그인이 필요합니다.";
+
+        if (userDetails == null) {
+            throw new UnAuthorizedException(ERROR_MESSAGE);
+        }
+
+        String token = userDetails.getPassword();
+        Claims claims = JwtUtil.getClaims(token);
+        if (claims == null) {
+            throw new UnAuthorizedException(ERROR_MESSAGE);
+        }
+
+        Long userId;
+        try {
+            userId = claims.get(JWT_CLAIM_USER_ID, Long.class);
+        } catch (RequiredTypeException e) {
+            logger.info("TypeCastUserId Failed : " + token);
+
+            throw new UnAuthorizedException(ERROR_MESSAGE);
+        }
+
+        if (userId == null) {
+            throw new UnAuthorizedException(ERROR_MESSAGE);
+        }
+
+        MyUserProfileDTO myUserProfileDTO = userService.getMyUserProfile(userId);
+        if (myUserProfileDTO == null) {
+            throw new UnAuthorizedException("존재하지 않는 사용자입니다.");
+        }
+
+        return myUserProfileDTO;
     }
 }
