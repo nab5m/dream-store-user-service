@@ -1,12 +1,12 @@
 package com.junyounggoat.dreamstore.userservice.util;
 
+import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import java.security.KeyPair;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -26,7 +26,7 @@ public class JwtUtil {
                 .getBody();
     }
 
-    public static String createAccessToken(Long userId) {
+    private static String createAccessToken(Long userId) {
         // ToDo: 현재 날짜, Timezone 반영 여부 확인 필요
         Date today = Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
         Date expiration = Date.from(
@@ -40,5 +40,11 @@ public class JwtUtil {
                 .setExpiration(expiration)
                 .signWith(JWT_SIGNING_KEY.getPrivate(), SignatureAlgorithm.RS256)
                 .compact();
+    }
+
+    public static AccessTokenResponseDTO createAccessTokenResponse(Long userId) {
+        return AccessTokenResponseDTO.builder()
+                .accessToken(createAccessToken(userId))
+                .build();
     }
 }

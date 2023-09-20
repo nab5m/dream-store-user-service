@@ -3,7 +3,8 @@ package com.junyounggoat.dreamstore.userservice.controller;
 import com.junyounggoat.dreamstore.userservice.constant.CodeCategoryName;
 import com.junyounggoat.dreamstore.userservice.constant.UniqueColumn;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.LoginRequestDTO;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
@@ -34,7 +35,7 @@ public class UserController {
     @PostMapping("")
     @ResponseStatus(code = HttpStatus.CREATED)
     @UserControllerDocs.CreateUserDocs
-    public CreateUserResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
+    public AccessTokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
         if (errors.hasErrors()) {
             throw NotValidException.builder().errors(errors).build();
         }
@@ -124,5 +125,23 @@ public class UserController {
                         .build(),
                 errors
         );
+    }
+
+
+    @PostMapping("/login")
+    @UserControllerDocs.LoginDocs
+    public AccessTokenResponseDTO login(@RequestBody LoginRequestDTO loginRequestDTO, Errors errors) {
+        if (errors.hasErrors()) {
+            throw NotValidException.builder().errors(errors).build();
+        }
+
+        AccessTokenResponseDTO response = userService.login(loginRequestDTO.getLoginUserName(), loginRequestDTO.getRawLoginUserPassword());
+
+        if (response == null) {
+            errors.reject("IncorrectLoginUserNameOrLoginUserPassword", "아이디나 비밀번호가 일치하지 않습니다.");
+            throw NotValidException.builder().errors(errors).build();
+        }
+
+        return response;
     }
 }

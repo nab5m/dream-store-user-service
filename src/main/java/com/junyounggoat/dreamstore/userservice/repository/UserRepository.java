@@ -1,7 +1,7 @@
 package com.junyounggoat.dreamstore.userservice.repository;
 
 import com.junyounggoat.dreamstore.userservice.entity.*;
-import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -18,10 +18,12 @@ public class UserRepository {
     private EntityManager entityManager;
     private final JPAQueryFactory queryFactory;
     private final QUser qUser = QUser.user;
+    private final QUserLoginCategory qUserLoginCategory = QUserLoginCategory.userLoginCategory;
     private final QUserLoginCredentials qUserLoginCredentials = QUserLoginCredentials.userLoginCredentials;
 
-    private final Predicate qUserIsNotDeleted = qUser.timestamp.deletionDateTime.isNull();
-    private final Predicate qUserLoginCredentialsIsNotDeleted = qUserLoginCredentials.timestamp.deletionDateTime.isNull();
+    private final BooleanExpression qUserIsNotDeleted = qUser.timestamp.deletionDateTime.isNull();
+    private final BooleanExpression qUserLoginCategoryIsNotDeleted = qUserLoginCategory.deletionDateTime.isNull();
+    private final BooleanExpression qUserLoginCredentialsIsNotDeleted = qUserLoginCredentials.timestamp.deletionDateTime.isNull();
 
     public User insertUser(User user) {
         User created = user.toBuilder().build();
@@ -84,7 +86,15 @@ public class UserRepository {
 
     public UserLoginCredentials findUserLoginCredentialsByLoginUserName(String loginUserName) {
         return queryFactory.selectFrom(qUserLoginCredentials)
-                .where(qUserLoginCredentials.loginUserName.eq(loginUserName).and(qUserLoginCredentialsIsNotDeleted))
+                .select(qUserLoginCredentials)
+                .innerJoin(qUserLoginCredentials.userLoginCategory, qUserLoginCategory)
+                .fetchJoin()
+                .innerJoin(qUserLoginCategory.user, qUser)
+                .fetchJoin()
+                .where(qUserLoginCredentials.loginUserName.eq(loginUserName)
+                        .and(qUserLoginCredentialsIsNotDeleted)
+                        .and(qUserLoginCategoryIsNotDeleted)
+                        .and(qUserIsNotDeleted))
                 .fetchOne();
     }
 }

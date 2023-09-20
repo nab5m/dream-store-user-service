@@ -2,13 +2,14 @@ package com.junyounggoat.dreamstore.userservice.service;
 
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.entity.*;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.Nullable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,7 @@ public class UserService {
         private UserPrivacyUsagePeriod userPrivacyUsagePeriod;
     }
 
-    public CreateUserResponseDTO createUserByLoginCredentials(CreateUserRequestDTO createUserRequestDTO) {
+    public AccessTokenResponseDTO createUserByLoginCredentials(CreateUserRequestDTO createUserRequestDTO) {
         CreateMemberCreatedEntity createMemberCreatedEntity = createMember(createUserRequestDTO, UserLoginCategoryCode.userLoginCredentials);
 
         createUserLoginCredentials(createUserRequestDTO.getUserLoginCredentials()
@@ -39,9 +40,7 @@ public class UserService {
                 .userLoginCategory(createMemberCreatedEntity.getUserLoginCategory())
                 .build());
 
-        return CreateUserResponseDTO.builder()
-                .accessToken(JwtUtil.createAccessToken(createMemberCreatedEntity.getUser().getUserId()))
-                .build();
+        return JwtUtil.createAccessTokenResponse(createMemberCreatedEntity.getUser().getUserId());
     }
 
     // 회원 가입 시 공통 프로세스
@@ -82,5 +81,18 @@ public class UserService {
 
     private void createUserLoginCredentials(UserLoginCredentials userLoginCredentials) {
         userRepository.insertUserLoginCredentials(userLoginCredentials);
+    }
+
+    public @Nullable AccessTokenResponseDTO login(String loginUserName, String rawLoginUserPassword) {
+        UserLoginCredentials userLoginCredentials = userRepository.findUserLoginCredentialsByLoginUserName(loginUserName);
+        if (userLoginCredentials == null) {
+            return null;
+        }
+
+        if (!passwordEncoder.matches(rawLoginUserPassword, userLoginCredentials.getLoginUserPassword())) {
+            return null;
+        }
+
+        return JwtUtil.createAccessTokenResponse(userLoginCredentials.getUserLoginCategory().getUser().getUserId());
     }
 }

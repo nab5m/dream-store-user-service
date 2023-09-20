@@ -3,7 +3,7 @@ package com.junyounggoat.dreamstore.userservice.controller;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
@@ -106,9 +106,7 @@ public class UserControllerTests {
                 .build();
 
         given(userService.createUserByLoginCredentials(any()))
-                .willReturn(CreateUserResponseDTO.builder()
-                        .accessToken(JwtUtil.createAccessToken(1L))
-                        .build());
+                .willReturn(JwtUtil.createAccessTokenResponse(1L));
     }
 
     private ResultActions requestPost(String endpoint, String requestData) throws Exception {

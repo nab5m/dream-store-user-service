@@ -48,7 +48,8 @@ public class SecurityConfig {
                             builder.pattern(HttpMethod.GET, "/v3/api-docs/*"),
                             builder.pattern(HttpMethod.GET, "/error"),
                             builder.pattern(HttpMethod.GET, "/"),
-                            builder.pattern(HttpMethod.POST, "/api/v1/user")
+                            builder.pattern(HttpMethod.POST, "/api/v1/user"),
+                            builder.pattern(HttpMethod.POST, "/api/v1/user/login")
                     ).permitAll()
                     .anyRequest().authenticated();
         });

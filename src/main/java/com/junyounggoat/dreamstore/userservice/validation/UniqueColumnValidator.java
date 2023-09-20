@@ -15,7 +15,7 @@ import org.springframework.validation.Validator;
 @Component
 @RequiredArgsConstructor
 public class UniqueColumnValidator implements Validator {
-    private static final String ERROR_CODE = "duplication";
+    private static final String ERROR_CODE = "Duplication";
 
     private final UserRepository userRepository;
 
