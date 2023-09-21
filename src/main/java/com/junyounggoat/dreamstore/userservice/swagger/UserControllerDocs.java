@@ -95,7 +95,7 @@ public abstract class UserControllerDocs {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용자 조회 성공",
                     content = @Content(schema = @Schema(implementation = MyUserDTO.class))),
-            @ApiResponse(responseCode = "401", description = "잘못된 토큰",
+            @ApiResponse(responseCode = "401", description = "로그인하지 않은 사용자",
                     content = @Content(schema = @Schema(example = "로그인이 필요합니다."))),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자",
                     content = @Content(schema = @Schema(example = USER_NOT_FOUND_MESSAGE)))
@@ -113,4 +113,28 @@ public abstract class UserControllerDocs {
                     content = @Content(schema = @Schema(example = USER_NOT_FOUND_MESSAGE)))
     })
     public @interface GetOtherUserDocs { }
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "사용자 수정")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용자 수정 성공",
+                    content = @Content(schema = @Schema(implementation = OtherUserDTO.class))),
+            // ToDo: message 상수화
+            @ApiResponse(responseCode = "400", description = "필수값 누락, 잘못된 형식의 입력, 중복된 값 입력",
+                    content = @Content(schema = @Schema(example =
+                            "{\n" +
+                            "    \"fieldErrors\": {\n" +
+                            "        \"userPhoneNumber\": \"이미 사용 중인 휴대폰 번호입니다.\",\n" +
+                            "        \"userEmailAddress\": \"이미 사용 중인 이메일 주소입니다.\"\n" +
+                            "    },\n" +
+                            "    \"notFieldErrors\": []\n" +
+                            "}"
+                    ))),
+            @ApiResponse(responseCode = "401", description = "로그인하지 않은 사용자",
+                    content = @Content(schema = @Schema(example = "로그인이 필요합니다."))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자",
+                    content = @Content(schema = @Schema(example = USER_NOT_FOUND_MESSAGE)))
+    })
+    public @interface UpdateMyUserDocs { }
 }

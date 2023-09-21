@@ -1,10 +1,7 @@
 package com.junyounggoat.dreamstore.userservice.service;
 
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
-import com.junyounggoat.dreamstore.userservice.dto.MyUserDTO;
-import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
+import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.entity.*;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
@@ -131,6 +128,19 @@ public class UserService {
 
         return OtherUserDTO.builder()
                 .user(user)
+                .build();
+    }
+
+    public @Nullable UpdateMyUserResponseDTO updateMyUser(long userId, UpdateMyUserRequestDTO updateMyUserRequestDTO) {
+        User currentUser = userRepository.findUserByUserId(userId);
+        if (currentUser == null) {
+            return null;
+        }
+
+        User updatedUser = userRepository.updateUser(updateMyUserRequestDTO.updateUser(currentUser));
+
+        return UpdateMyUserResponseDTO.builder()
+                .user(updatedUser)
                 .build();
     }
 }

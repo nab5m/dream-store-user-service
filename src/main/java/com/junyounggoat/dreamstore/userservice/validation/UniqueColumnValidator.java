@@ -22,6 +22,7 @@ public class UniqueColumnValidator implements Validator {
     @Builder
     @Getter
     public static class Target<T> {
+        private Long excludingRowId;
         private UniqueColumn uniqueColumn;
         private String field;
         private T value;
@@ -37,43 +38,43 @@ public class UniqueColumnValidator implements Validator {
         Target target = (Target) targetObject;
 
         switch (target.getUniqueColumn()) {
-            case UserEmailAddress -> validateUniqueUserEmailAddress(target.getField(), (String) target.getValue(), errors);
-            case UserPhoneNumber -> validateUniqueUserPhoneNumber(target.getField(), (String) target.getValue(), errors);
-            case LoginUserName -> validateUniqueLoginUserName(target.getField(), (String) target.getValue(), errors);
+            case UserEmailAddress -> validateUniqueUserEmailAddress(target, errors);
+            case UserPhoneNumber -> validateUniqueUserPhoneNumber(target, errors);
+            case LoginUserName -> validateUniqueLoginUserName(target, errors);
             default -> throw new RuntimeException("UniqueColumnValidator - Not Supported Column.");
         }
     }
 
-    private void validateUniqueUserEmailAddress(String field, String userEmailAddress, Errors errors) {
-        User user = userRepository.findUserByUserEmailAddress(userEmailAddress);
+    private void validateUniqueUserEmailAddress(Target target, Errors errors) {
+        User user = userRepository.findUserByUserEmailAddress((String) target.getValue(), target.getExcludingRowId());
         if (user != null) {
             String ERROR_MESSAGE = "이미 사용 중인 이메일 주소입니다.";
             try {
-                errors.rejectValue(field, ERROR_CODE, ERROR_MESSAGE);
+                errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
                 errors.reject(ERROR_CODE, ERROR_MESSAGE);
             }
         }
     }
 
-    private void validateUniqueUserPhoneNumber(String field, String userPhoneNumber, Errors errors) {
-        User user = userRepository.findUserByUserPhoneNumber(userPhoneNumber);
+    private void validateUniqueUserPhoneNumber(Target target, Errors errors) {
+        User user = userRepository.findUserByUserPhoneNumber((String) target.getValue(), target.getExcludingRowId());
         if (user != null) {
             String ERROR_MESSAGE = "이미 사용 중인 휴대폰 번호입니다.";
             try {
-                errors.rejectValue(field, ERROR_CODE, ERROR_MESSAGE);
+                errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
                 errors.reject(ERROR_CODE, ERROR_MESSAGE);
             }
         }
     }
 
-    private void validateUniqueLoginUserName(String field, String loginUserName, Errors errors) {
-        UserLoginCredentials userLoginCredentials = userRepository.findUserLoginCredentialsByLoginUserName(loginUserName);
+    private void validateUniqueLoginUserName(Target target, Errors errors) {
+        UserLoginCredentials userLoginCredentials = userRepository.findUserLoginCredentialsByLoginUserName((String) target.getValue());
         if (userLoginCredentials != null) {
             String ERROR_MESSAGE = "이미 사용 중인 아이디입니다.";
             try {
-                errors.rejectValue(field, ERROR_CODE, ERROR_MESSAGE);
+                errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
                 errors.reject(ERROR_CODE, ERROR_MESSAGE);
             }

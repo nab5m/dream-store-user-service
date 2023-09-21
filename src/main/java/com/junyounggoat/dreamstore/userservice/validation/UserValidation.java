@@ -3,10 +3,7 @@ package com.junyounggoat.dreamstore.userservice.validation;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 import jakarta.validation.ReportAsSingleViolation;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -84,6 +81,25 @@ public abstract class UserValidation {
     @ReportAsSingleViolation
     public @interface UserNickname {
         String message() default USER_NICKNAME_MIN_LENGTH + "~" + USER_NICKNAME_MAX_LENGTH + "자의 닉네임을 입력해주세요.";
+        Class<?>[] groups() default {};
+        Class<? extends Payload>[] payload() default {};
+    }
+
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
+    @Retention(RUNTIME)
+    public @interface UserGenderCode {
+        String message() default "";
+        Class<?>[] groups() default {};
+        Class<? extends Payload>[] payload() default {};
+    }
+
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
+    @Retention(RUNTIME)
+    @Constraint(validatedBy = {})
+    @PastOrPresent
+    @ReportAsSingleViolation
+    public @interface UserBirthDate {
+        String message() default "오늘이나 과거의 날짜를 입력해주세요.";
         Class<?>[] groups() default {};
         Class<? extends Payload>[] payload() default {};
     }

@@ -73,17 +73,30 @@ public class UserRepository {
         return created;
     }
 
-    public User findUserByUserEmailAddress(String userEmailAddress) {
+    public User findUserByUserEmailAddress(String userEmailAddress, @Nullable Long excludingRowId) {
+        BooleanExpression whereClause = qUser.userEmailAddress.eq(userEmailAddress).and(qUserIsNotDeleted);
+
+        if (excludingRowId != null) {
+            whereClause = whereClause.and(qUser.userId.ne(excludingRowId));
+        }
+
         return queryFactory.selectFrom(qUser)
-                .where(qUser.userEmailAddress.eq(userEmailAddress).and(qUserIsNotDeleted))
+                .where(whereClause)
                 .fetchOne();
     }
 
-    public User findUserByUserPhoneNumber(String userPhoneNumber) {
+    public User findUserByUserPhoneNumber(String userPhoneNumber, @Nullable Long excludingRowId) {
+        BooleanExpression whereClause = qUser.userPhoneNumber.eq(userPhoneNumber).and(qUserIsNotDeleted);
+
+        if (excludingRowId != null) {
+            whereClause = whereClause.and(qUser.userId.ne(excludingRowId));
+        }
+
         return queryFactory.selectFrom(qUser)
-                .where(qUser.userPhoneNumber.eq(userPhoneNumber).and(qUserIsNotDeleted))
+                .where(whereClause)
                 .fetchOne();
     }
+
 
     public UserLoginCredentials findUserLoginCredentialsByLoginUserName(String loginUserName) {
         return queryFactory.selectFrom(qUserLoginCredentials)
@@ -103,5 +116,12 @@ public class UserRepository {
         return queryFactory.selectFrom(qUser)
                 .where(qUser.userId.eq(userId).and(qUserIsNotDeleted))
                 .fetchOne();
+    }
+
+    public User updateUser(User user) {
+        User updated = user.toBuilder().build();
+        entityManager.merge(updated);
+
+        return updated;
     }
 }

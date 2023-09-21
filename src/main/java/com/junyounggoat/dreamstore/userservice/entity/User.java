@@ -51,8 +51,10 @@ public class User {
     private UserShippingAddress userShippingAddress;
      */
 
+    @UserGenderCode
     private Integer userGenderCode;
 
+    @UserBirthDate
     private LocalDate userBirthDate;
 
     @Embedded

@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.Nullable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.Errors;
@@ -32,6 +33,7 @@ import static com.junyounggoat.dreamstore.userservice.util.JwtUtil.JWT_CLAIM_USE
 @Tag(name = "UserController", description = "사용자 컨트롤러")
 public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private static final String LOGIN_REQUIRED_ERROR_MESSAGE = "로그인이 필요합니다.";
     public static final String USER_NOT_FOUND_MESSAGE = "존재하지 않는 사용자입니다.";
 
     private final UserService userService;
@@ -43,9 +45,7 @@ public class UserController {
     @ResponseStatus(code = HttpStatus.CREATED)
     @UserControllerDocs.CreateUserDocs
     public AccessTokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
-        if (errors.hasErrors()) {
-            throw NotValidException.builder().errors(errors).build();
-        }
+        throwIfErrorExists(errors);
 
         validateUniqueUserEmailAddress("user.userEmailAddress", createUserRequestDTO.getUser().getUserEmailAddress(), errors);
         validateUniqueUserPhoneNumber("user.userPhoneNumber", createUserRequestDTO.getUser().getUserPhoneNumber(), errors);
@@ -74,19 +74,22 @@ public class UserController {
         validateCodeExists(usedCodeList, errors);
         validateRequiredUserAgreementItem("userAgreementItemCodeList", createUserRequestDTO.getUserAgreementItemCodeList(), errors);
 
-        if (errors.hasErrors()) {
-            throw NotValidException.builder().errors(errors).build();
-        }
+        throwIfErrorExists(errors);
 
         return userService.createUserByLoginCredentials(createUserRequestDTO);
     }
 
     // ToDo: 이것도 Validator 클래스 안 쪽으로 집어넣을까?
     private void validateUniqueUserEmailAddress(String field, String userEmailAddress, Errors errors) {
+        validateUniqueUserEmailAddress(field, userEmailAddress, null, errors);
+    }
+
+    private void validateUniqueUserEmailAddress(String field, String userEmailAddress, Long excludingRowId, Errors errors) {
         uniqueColumnValidator.validate(
                 UniqueColumnValidator.Target.builder()
                         .field(field)
                         .uniqueColumn(UniqueColumn.UserEmailAddress)
+                        .excludingRowId(excludingRowId)
                         .value(userEmailAddress)
                         .build(),
                 errors
@@ -94,10 +97,15 @@ public class UserController {
     }
 
     private void validateUniqueUserPhoneNumber(String field, String userPhoneNumber, Errors errors) {
+        validateUniqueUserPhoneNumber(field, userPhoneNumber, null, errors);
+    }
+
+    private void validateUniqueUserPhoneNumber(String field, String userPhoneNumber, Long excludingRowId, Errors errors) {
         uniqueColumnValidator.validate(
                 UniqueColumnValidator.Target.builder()
                         .field(field)
                         .uniqueColumn(UniqueColumn.UserPhoneNumber)
+                        .excludingRowId(excludingRowId)
                         .value(userPhoneNumber)
                         .build(),
                 errors
@@ -138,9 +146,7 @@ public class UserController {
     @PostMapping("/login")
     @UserControllerDocs.LoginDocs
     public AccessTokenResponseDTO login(@RequestBody @Valid LoginRequestDTO loginRequestDTO, Errors errors) {
-        if (errors.hasErrors()) {
-            throw NotValidException.builder().errors(errors).build();
-        }
+        throwIfErrorExists(errors);
 
         AccessTokenResponseDTO response = userService.login(loginRequestDTO.getLoginUserName(), loginRequestDTO.getRawLoginUserPassword());
 
@@ -169,31 +175,10 @@ public class UserController {
     @GetMapping("/mine")
     @UserControllerDocs.GetMyUserDocs
     public MyUserDTO getMyUser(@AuthenticationPrincipal UserDetails userDetails) {
-        // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
         // ToDo: 비회원일 때 분기처리 주의
-        String ERROR_MESSAGE = "로그인이 필요합니다.";
-
-        if (userDetails == null) {
-            throw new UnAuthorizedException(ERROR_MESSAGE);
-        }
-
-        String token = userDetails.getPassword();
-        Claims claims = JwtUtil.getClaims(token);
-        if (claims == null) {
-            throw new UnAuthorizedException(ERROR_MESSAGE);
-        }
-
-        Long userId;
-        try {
-            userId = claims.get(JWT_CLAIM_USER_ID, Long.class);
-        } catch (RequiredTypeException e) {
-            logger.info("TypeCastUserId Failed : " + token);
-
-            throw new UnAuthorizedException(ERROR_MESSAGE);
-        }
-
+        Long userId = getUserIdFromUserDetails(userDetails);
         if (userId == null) {
-            throw new UnAuthorizedException(ERROR_MESSAGE);
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
         }
 
         MyUserDTO myUserDTO = userService.getMyUser(userId);
@@ -214,5 +199,81 @@ public class UserController {
         }
 
         return otherUserDTO;
+    }
+
+    @PutMapping("")
+    @UserControllerDocs.UpdateMyUserDocs
+    public UpdateMyUserResponseDTO updateMyUser(@AuthenticationPrincipal UserDetails userDetails,
+                                                @RequestBody @Valid UpdateMyUserRequestDTO updateMyUserRequestDTO,
+                                                Errors errors)
+    {
+        throwIfErrorExists(errors);
+
+        Long userId = getUserIdFromUserDetails(userDetails);
+
+        validateUniqueUserEmailAddress("userEmailAddress", updateMyUserRequestDTO.getUserEmailAddress(), userId, errors);
+        validateUniqueUserPhoneNumber("userPhoneNumber", updateMyUserRequestDTO.getUserPhoneNumber(), userId, errors);
+
+        Integer userGenderCode = updateMyUserRequestDTO.getUserGenderCode();
+
+        if (userGenderCode != null) {
+            List<CodeExistValidator.TargetCodeItem> usedCodeList = new LinkedList<>();
+            usedCodeList.add(CodeExistValidator.TargetCodeItem.builder()
+                    .codeItem(CodeCategoryNameAndCodeName.builder()
+                            .codeCategoryName(CodeCategoryName.GENDER.getName())
+                            .code(userGenderCode)
+                            .build())
+                    .field("userGenderCode")
+                    .build());
+
+            validateCodeExists(usedCodeList, errors);
+        }
+
+        throwIfErrorExists(errors);
+
+        /*
+        엔티티 db에서 불러온 후 수정 vs update 쿼리 QueryDSL로 만들기
+        - 엔티티를 db에서 불러온 후 수정할 경우 select 쿼리를 한 번 호출하게 되지만 유지보수 시 엔티티를 한 곳에서 수정해주면 돼서 편해짐
+            -> 서비스 계층에서 엔티티 수정 완료
+        - update 쿼리 QueryDSL로 만들 경우 용도에 따라 update 쿼리를 수동으로 여러 개 만들어야 함
+            -> 레포지토리 계층까지 영향
+         */
+        UpdateMyUserResponseDTO updateMyUserResponseDTO = userService.updateMyUser(userId, updateMyUserRequestDTO);
+        if (updateMyUserResponseDTO == null) {
+            // ToDo: updateMyUser에서 null을 return하는 이유가 변할 수 있으니 서비스 단에서 적절한 Exception을 던지는 것이 나을 듯
+            throw new NotFoundException(USER_NOT_FOUND_MESSAGE);
+        }
+
+        return updateMyUserResponseDTO;
+    }
+
+    private void throwIfErrorExists(Errors errors) {
+        if (errors.hasErrors()) {
+            throw NotValidException.builder().errors(errors).build();
+        }
+    }
+
+    private Long getUserIdFromUserDetails(@Nullable UserDetails userDetails) {
+        // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
+        if (userDetails == null) {
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
+        }
+
+        String token = userDetails.getPassword();
+        Claims claims = JwtUtil.getClaims(token);
+        if (claims == null) {
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
+        }
+
+        Long userId;
+        try {
+            userId = claims.get(JWT_CLAIM_USER_ID, Long.class);
+        } catch (RequiredTypeException e) {
+            logger.info("TypeCastUserId Failed : " + token);
+
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
+        }
+
+        return userId;
     }
 }
