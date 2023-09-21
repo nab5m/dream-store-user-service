@@ -85,17 +85,17 @@ public abstract class UserControllerDocs {
 
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
-    @Operation(summary = "로그인한 사용자 프로필 조회",
+    @Operation(summary = "로그인한 사용자 조회",
             description = "엑세스 토큰을 제공해야만 조회 가능합니다. <br />" +
                     "<a href=\"https://lemontia.tistory.com/1027\" target=\"_blank\">사용 방법</a>")
     @SecurityRequirement(name = SECURITY_SCHEME_NAME)
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "사용자 프로필 조회 성공",
+            @ApiResponse(responseCode = "200", description = "사용자 조회 성공",
                     content = @Content(schema = @Schema(implementation = AccessTokenResponseDTO.class))),
             @ApiResponse(responseCode = "401", description = "잘못된 토큰",
                     content = @Content(schema = @Schema(example = "로그인이 필요합니다."))),
             @ApiResponse(responseCode = "401 ", description = "존재하지 않는 사용자",
                     content = @Content(schema = @Schema(example = "존재하지 않는 사용자입니다.")))
     })
-    public @interface GetMyUserProfileDocs { }
+    public @interface GetMyUserDocs { }
 }

@@ -13,7 +13,7 @@ import java.util.List;
 
 @Builder
 @Getter
-public class MyUserProfileDTO {
+public class MyUserDTO {
     private UserDTO user;
     private UserPrivacyUsagePeriodDTO userPrivacyUsagePeriod;
     private List<UserLoginCategoryDTO> userLoginCategoryList;

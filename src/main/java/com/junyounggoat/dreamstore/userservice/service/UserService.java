@@ -3,7 +3,7 @@ package com.junyounggoat.dreamstore.userservice.service;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
 import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
-import com.junyounggoat.dreamstore.userservice.dto.MyUserProfileDTO;
+import com.junyounggoat.dreamstore.userservice.dto.MyUserDTO;
 import com.junyounggoat.dreamstore.userservice.entity.*;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
@@ -98,25 +98,25 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public @Nullable MyUserProfileDTO getMyUserProfile(Long userId) {
+    public @Nullable MyUserDTO getMyUser(Long userId) {
         User user = userRepository.findUserByUserId(userId);
 
         if (user == null) {
             return null;
         }
 
-        return MyUserProfileDTO.builder()
-                .user(MyUserProfileDTO.UserDTO.builder().user(user).build())
-                .userPrivacyUsagePeriod(MyUserProfileDTO.UserPrivacyUsagePeriodDTO.builder()
+        return MyUserDTO.builder()
+                .user(MyUserDTO.UserDTO.builder().user(user).build())
+                .userPrivacyUsagePeriod(MyUserDTO.UserPrivacyUsagePeriodDTO.builder()
                         .userPrivacyUsagePeriod(user.getUserPrivacyUsagePeriod())
                         .build())
                 .userLoginCategoryList(user.getUserLoginCategoryList()
                         .stream()
-                        .map(userLoginCategory -> MyUserProfileDTO.UserLoginCategoryDTO.builder()
+                        .map(userLoginCategory -> MyUserDTO.UserLoginCategoryDTO.builder()
                                 .userLoginCategory(userLoginCategory).build()).toList())
                 .userAgreementItemList(user.getUserAgreementItemList()
                         .stream()
-                        .map(userAgreementItem -> MyUserProfileDTO.UserAgreementItemDTO.builder()
+                        .map(userAgreementItem -> MyUserDTO.UserAgreementItemDTO.builder()
                                 .userAgreementItem(userAgreementItem).build()).toList())
                 .build();
     }

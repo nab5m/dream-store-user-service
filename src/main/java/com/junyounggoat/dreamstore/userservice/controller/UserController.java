@@ -13,7 +13,6 @@ import com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementI
 import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.RequiredTypeException;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.junyounggoat.dreamstore.userservice.config.OpenApiConfig.SECURITY_SCHEME_NAME;
 import static com.junyounggoat.dreamstore.userservice.util.JwtUtil.JWT_CLAIM_USER_ID;
 
 @RestController
@@ -164,8 +162,8 @@ public class UserController {
     }
 
     @GetMapping("/mine")
-    @UserControllerDocs.GetMyUserProfileDocs
-    public MyUserProfileDTO getMyUserProfile(@AuthenticationPrincipal UserDetails userDetails) {
+    @UserControllerDocs.GetMyUserDocs
+    public MyUserDTO getMyUser(@AuthenticationPrincipal UserDetails userDetails) {
         // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
         String ERROR_MESSAGE = "로그인이 필요합니다.";
 
@@ -192,11 +190,11 @@ public class UserController {
             throw new UnAuthorizedException(ERROR_MESSAGE);
         }
 
-        MyUserProfileDTO myUserProfileDTO = userService.getMyUserProfile(userId);
-        if (myUserProfileDTO == null) {
+        MyUserDTO myUserDTO = userService.getMyUser(userId);
+        if (myUserDTO == null) {
             throw new UnAuthorizedException("존재하지 않는 사용자입니다.");
         }
 
-        return myUserProfileDTO;
+        return myUserDTO;
     }
 }
