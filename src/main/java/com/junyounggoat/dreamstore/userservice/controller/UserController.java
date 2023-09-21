@@ -174,6 +174,7 @@ public class UserController {
     @UserControllerDocs.GetMyUserDocs
     public MyUserDTO getMyUser(@AuthenticationPrincipal UserDetails userDetails) {
         // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
+        // ToDo: 비회원일 때 분기처리 주의
         String ERROR_MESSAGE = "로그인이 필요합니다.";
 
         if (userDetails == null) {
@@ -210,6 +211,7 @@ public class UserController {
     @GetMapping("/{userId}")
     @UserControllerDocs.GetOtherUserDocs
     public OtherUserDTO getOtherUser(@PathVariable @Valid @Min(value = 0) long userId) {
+        // ToDo: 비회원일 때 분기처리 주의
         OtherUserDTO otherUserDTO = userService.getOtherUser(userId);
         if (otherUserDTO == null) {
             throw new NotFoundException(USER_NOT_FOUND_MESSAGE);
