@@ -2,6 +2,8 @@ package com.junyounggoat.dreamstore.userservice.swagger;
 
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
 import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.MyUserDTO;
+import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,6 +18,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static com.junyounggoat.dreamstore.userservice.config.OpenApiConfig.SECURITY_SCHEME_NAME;
+import static com.junyounggoat.dreamstore.userservice.controller.UserController.USER_NOT_FOUND_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.RAW_LOGIN_USER_PASSWORD_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
@@ -91,11 +94,23 @@ public abstract class UserControllerDocs {
     @SecurityRequirement(name = SECURITY_SCHEME_NAME)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용자 조회 성공",
-                    content = @Content(schema = @Schema(implementation = AccessTokenResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = MyUserDTO.class))),
             @ApiResponse(responseCode = "401", description = "잘못된 토큰",
                     content = @Content(schema = @Schema(example = "로그인이 필요합니다."))),
-            @ApiResponse(responseCode = "401 ", description = "존재하지 않는 사용자",
-                    content = @Content(schema = @Schema(example = "존재하지 않는 사용자입니다.")))
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자",
+                    content = @Content(schema = @Schema(example = USER_NOT_FOUND_MESSAGE)))
     })
     public @interface GetMyUserDocs { }
+
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "사용자 조회")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용자 조회 성공",
+                    content = @Content(schema = @Schema(implementation = OtherUserDTO.class))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자",
+                    content = @Content(schema = @Schema(example = USER_NOT_FOUND_MESSAGE)))
+    })
+    public @interface GetOtherUserDocs { }
 }

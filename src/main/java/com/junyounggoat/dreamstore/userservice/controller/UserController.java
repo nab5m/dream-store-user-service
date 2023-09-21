@@ -15,6 +15,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.RequiredTypeException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ import static com.junyounggoat.dreamstore.userservice.util.JwtUtil.JWT_CLAIM_USE
 @Tag(name = "UserController", description = "사용자 컨트롤러")
 public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    public static final String USER_NOT_FOUND_MESSAGE = "존재하지 않는 사용자입니다.";
 
     private final UserService userService;
     private final UniqueColumnValidator uniqueColumnValidator;
@@ -161,6 +163,13 @@ public class UserController {
         }
     }
 
+    @ResponseStatus(code = HttpStatus.NOT_FOUND)
+    public static class NotFoundException extends RuntimeException {
+        public NotFoundException(String message) {
+            super(message);
+        }
+    }
+
     @GetMapping("/mine")
     @UserControllerDocs.GetMyUserDocs
     public MyUserDTO getMyUser(@AuthenticationPrincipal UserDetails userDetails) {
@@ -192,9 +201,20 @@ public class UserController {
 
         MyUserDTO myUserDTO = userService.getMyUser(userId);
         if (myUserDTO == null) {
-            throw new UnAuthorizedException("존재하지 않는 사용자입니다.");
+            throw new NotFoundException(USER_NOT_FOUND_MESSAGE);
         }
 
         return myUserDTO;
+    }
+
+    @GetMapping("/{userId}")
+    @UserControllerDocs.GetOtherUserDocs
+    public OtherUserDTO getOtherUser(@PathVariable @Valid @Min(value = 0) long userId) {
+        OtherUserDTO otherUserDTO = userService.getOtherUser(userId);
+        if (otherUserDTO == null) {
+            throw new NotFoundException(USER_NOT_FOUND_MESSAGE);
+        }
+
+        return otherUserDTO;
     }
 }

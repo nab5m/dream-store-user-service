@@ -4,6 +4,7 @@ import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
 import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.dto.MyUserDTO;
+import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
 import com.junyounggoat.dreamstore.userservice.entity.*;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
@@ -118,6 +119,18 @@ public class UserService {
                         .stream()
                         .map(userAgreementItem -> MyUserDTO.UserAgreementItemDTO.builder()
                                 .userAgreementItem(userAgreementItem).build()).toList())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public @Nullable OtherUserDTO getOtherUser(long userId) {
+        User user = userRepository.findUserByUserId(userId);
+        if (user == null) {
+            return null;
+        }
+
+        return OtherUserDTO.builder()
+                .user(user)
                 .build();
     }
 }

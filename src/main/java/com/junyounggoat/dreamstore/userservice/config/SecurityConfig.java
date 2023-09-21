@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 import static org.springframework.boot.autoconfigure.security.servlet.PathRequest.toH2Console;
@@ -55,6 +56,7 @@ public class SecurityConfig {
                             builder.pattern(HttpMethod.GET, "/v3/api-docs/*"),
                             builder.pattern(HttpMethod.GET, "/error"),
                             builder.pattern(HttpMethod.GET, "/"),
+                            RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/v1/user/(\\d)+$"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user/login")
                     ).permitAll()
