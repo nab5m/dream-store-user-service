@@ -1,6 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.config;
 
-import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
+import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.RequiredTypeException;
 import jakarta.servlet.FilterChain;
@@ -17,7 +17,7 @@ import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
 
-import static com.junyounggoat.dreamstore.userservice.util.JwtUtil.JWT_CLAIM_USER_ID;
+import static com.junyounggoat.dreamstore.userservice.service.TokenService.JWT_CLAIM_USER_ID;
 
 public class JwtFilter extends GenericFilterBean {
     public static final String AUTHORIZATION_HEADER = "Authorization";
@@ -33,7 +33,7 @@ public class JwtFilter extends GenericFilterBean {
             return;
         }
 
-        Claims claims = JwtUtil.getClaims(token);
+        Claims claims = TokenService.getClaims(token);
         if (claims == null) {
             chain.doFilter(request, response);
             return;

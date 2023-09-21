@@ -6,7 +6,7 @@ import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
-import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
+import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.RequiredTypeException;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.junyounggoat.dreamstore.userservice.util.JwtUtil.JWT_CLAIM_USER_ID;
+import static com.junyounggoat.dreamstore.userservice.service.TokenService.JWT_CLAIM_USER_ID;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -37,6 +37,7 @@ public class UserController {
     public static final String USER_NOT_FOUND_MESSAGE = "존재하지 않는 사용자입니다.";
 
     private final UserService userService;
+    private final TokenService tokenService;
     private final UniqueColumnValidator uniqueColumnValidator;
     private final RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
     private final CodeExistValidator codeExistValidator;
@@ -44,7 +45,7 @@ public class UserController {
     @PostMapping("")
     @ResponseStatus(code = HttpStatus.CREATED)
     @UserControllerDocs.CreateUserDocs
-    public AccessTokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
+    public TokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
         throwIfErrorExists(errors);
 
         validateUniqueUserEmailAddress("user.userEmailAddress", createUserRequestDTO.getUser().getUserEmailAddress(), errors);
@@ -145,10 +146,10 @@ public class UserController {
 
     @PostMapping("/login")
     @UserControllerDocs.LoginDocs
-    public AccessTokenResponseDTO login(@RequestBody @Valid LoginRequestDTO loginRequestDTO, Errors errors) {
+    public TokenResponseDTO login(@RequestBody @Valid LoginRequestDTO loginRequestDTO, Errors errors) {
         throwIfErrorExists(errors);
 
-        AccessTokenResponseDTO response = userService.login(loginRequestDTO.getLoginUserName(), loginRequestDTO.getRawLoginUserPassword());
+        TokenResponseDTO response = userService.login(loginRequestDTO.getLoginUserName(), loginRequestDTO.getRawLoginUserPassword());
 
         if (response == null) {
             errors.reject("IncorrectLoginUserNameOrLoginUserPassword", "아이디나 비밀번호가 일치하지 않습니다.");
@@ -260,7 +261,7 @@ public class UserController {
         }
 
         String token = userDetails.getPassword();
-        Claims claims = JwtUtil.getClaims(token);
+        Claims claims = tokenService.getClaims(token);
         if (claims == null) {
             throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
         }

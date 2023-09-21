@@ -1,7 +1,7 @@
 package com.junyounggoat.dreamstore.userservice.swagger;
 
 import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.dto.MyUserDTO;
 import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,7 +59,7 @@ public abstract class UserControllerDocs {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "회원가입 성공 및 accessToken 발급",
-                    content = @Content(schema = @Schema(implementation = AccessTokenResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "필수값 누락, 잘못된 형식의 입력, 중복된 값 입력",
                     content = @Content(schema = @Schema(example = "{\n" +
                             "    \"errors\": {\n" +
@@ -75,7 +75,7 @@ public abstract class UserControllerDocs {
     @Operation(summary = "사용자로그인자격증명으로 로그인")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "로그인 성공 및 accessToken 발급",
-                    content = @Content(schema = @Schema(implementation = AccessTokenResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "존재하지 않는 아이디 또는 비밀번호 입력",
                     content = @Content(schema = @Schema(example = "{\n" +
                             "    \"fieldErrors\": {},\n" +

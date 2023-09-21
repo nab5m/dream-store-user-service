@@ -3,9 +3,8 @@ package com.junyounggoat.dreamstore.userservice.controller;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
-import com.junyounggoat.dreamstore.userservice.dto.AccessTokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
-import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
+import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
 import com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementItemValidator;
 import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
@@ -46,6 +45,8 @@ public class UserControllerTests {
     private MockMvc mockMvc;
     @MockBean
     private UserService userService;
+    @MockBean
+    private TokenService tokenService;
     @MockBean
     private UniqueColumnValidator uniqueColumnValidator;
     @MockBean
@@ -106,7 +107,7 @@ public class UserControllerTests {
                 .build();
 
         given(userService.createUserByLoginCredentials(any()))
-                .willReturn(JwtUtil.createAccessTokenResponse(1L));
+                .willReturn(tokenService.createAccessTokenResponse(1L));
     }
 
     private ResultActions requestPost(String endpoint, String requestData) throws Exception {
@@ -356,7 +357,7 @@ public class UserControllerTests {
         DocumentContext documentContext = JsonPath.parse(mvcResult.getResponse().getContentAsString());
         String accessToken = documentContext.read("$.accessToken");
 
-        long userId = ((Integer) JwtUtil.getClaims(accessToken).get("userId")).longValue();
+        long userId = ((Integer) tokenService.getClaims(accessToken).get("userId")).longValue();
         assertTrue(userId > 0, "jwt의 userId가 비정상적입니다.");
     }
 }

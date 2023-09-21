@@ -4,7 +4,6 @@ import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.entity.*;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
-import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +18,7 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 public class UserService {
+    private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
@@ -31,7 +31,7 @@ public class UserService {
         private UserPrivacyUsagePeriod userPrivacyUsagePeriod;
     }
 
-    public AccessTokenResponseDTO createUserByLoginCredentials(CreateUserRequestDTO createUserRequestDTO) {
+    public TokenResponseDTO createUserByLoginCredentials(CreateUserRequestDTO createUserRequestDTO) {
         CreateMemberCreatedEntity createMemberCreatedEntity = createMember(createUserRequestDTO, UserLoginCategoryCode.userLoginCredentials);
 
         createUserLoginCredentials(createUserRequestDTO.getUserLoginCredentials()
@@ -39,7 +39,7 @@ public class UserService {
                 .userLoginCategory(createMemberCreatedEntity.getUserLoginCategory())
                 .build());
 
-        return JwtUtil.createAccessTokenResponse(createMemberCreatedEntity.getUser().getUserId());
+        return tokenService.createAccessTokenResponse(createMemberCreatedEntity.getUser().getUserId());
     }
 
     // 회원 가입 시 공통 프로세스
@@ -82,7 +82,7 @@ public class UserService {
         userRepository.insertUserLoginCredentials(userLoginCredentials);
     }
 
-    public @Nullable AccessTokenResponseDTO login(String loginUserName, String rawLoginUserPassword) {
+    public @Nullable TokenResponseDTO login(String loginUserName, String rawLoginUserPassword) {
         UserLoginCredentials userLoginCredentials = userRepository.findUserLoginCredentialsByLoginUserName(loginUserName);
         if (userLoginCredentials == null) {
             return null;
@@ -92,7 +92,7 @@ public class UserService {
             return null;
         }
 
-        return JwtUtil.createAccessTokenResponse(userLoginCredentials.getUserLoginCategory().getUser().getUserId());
+        return tokenService.createAccessTokenResponse(userLoginCredentials.getUserLoginCategory().getUser().getUserId());
     }
 
     @Transactional(readOnly = true)
