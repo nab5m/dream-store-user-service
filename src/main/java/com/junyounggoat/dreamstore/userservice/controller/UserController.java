@@ -7,15 +7,11 @@ import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCat
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
 import com.junyounggoat.dreamstore.userservice.util.JwtUtil;
-import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
-import com.junyounggoat.dreamstore.userservice.validation.NotValidException;
-import com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementItemValidator;
-import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
+import com.junyounggoat.dreamstore.userservice.validation.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.RequiredTypeException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,7 +137,7 @@ public class UserController {
 
     @PostMapping("/login")
     @UserControllerDocs.LoginDocs
-    public AccessTokenResponseDTO login(@RequestBody LoginRequestDTO loginRequestDTO, Errors errors) {
+    public AccessTokenResponseDTO login(@RequestBody @Valid LoginRequestDTO loginRequestDTO, Errors errors) {
         if (errors.hasErrors()) {
             throw NotValidException.builder().errors(errors).build();
         }
@@ -210,7 +206,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @UserControllerDocs.GetOtherUserDocs
-    public OtherUserDTO getOtherUser(@PathVariable @Valid @Min(value = 0) long userId) {
+    public OtherUserDTO getOtherUser(@PathVariable @Valid @UserValidation.UserId long userId) {
         // ToDo: 비회원일 때 분기처리 주의
         OtherUserDTO otherUserDTO = userService.getOtherUser(userId);
         if (otherUserDTO == null) {
