@@ -39,7 +39,7 @@ public class UserService {
                 .userLoginCategory(createMemberCreatedEntity.getUserLoginCategory())
                 .build());
 
-        return tokenService.createAccessTokenResponse(createMemberCreatedEntity.getUser().getUserId());
+        return tokenService.createAccessTokenWithRefreshToken(createMemberCreatedEntity.getUser().getUserId());
     }
 
     // 회원 가입 시 공통 프로세스
@@ -92,7 +92,7 @@ public class UserService {
             return null;
         }
 
-        return tokenService.createAccessTokenResponse(userLoginCredentials.getUserLoginCategory().getUser().getUserId());
+        return tokenService.createAccessTokenWithRefreshToken(userLoginCredentials.getUserLoginCategory().getUser().getUserId());
     }
 
     @Transactional(readOnly = true)

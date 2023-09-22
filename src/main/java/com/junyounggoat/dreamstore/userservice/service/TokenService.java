@@ -46,7 +46,7 @@ public class TokenService {
         return null;
     }
 
-    private String createAccessToken(long userId) {
+    public String createAccessToken(long userId) {
         // ToDo: 현재 날짜, Timezone 반영 여부 확인 필요
         // ToDo: Claims에 roles 부여하기
         Date today = Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
@@ -87,10 +87,15 @@ public class TokenService {
         return refreshTokenString;
     }
 
-    public TokenResponseDTO createAccessTokenResponse(long userId) {
+    public TokenResponseDTO createAccessTokenWithRefreshToken(long userId) {
         return TokenResponseDTO.builder()
                 .accessToken(createAccessToken(userId))
                 .refreshToken(createRefreshToken(userId))
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public @Nullable RefreshToken getRefreshToken(String refreshToken) {
+        return refreshTokenRepository.findById(refreshToken);
     }
 }

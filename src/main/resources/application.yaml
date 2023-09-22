@@ -90,3 +90,8 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: none
+  data:
+    redis:
+      host: ${spring-redis-host}
+      port: ${spring-redis-port}
+      timeout: 3000

@@ -58,7 +58,8 @@ public class SecurityConfig {
                             builder.pattern(HttpMethod.GET, "/"),
                             RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/v1/user/(\\d)+$"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user"),
-                            builder.pattern(HttpMethod.POST, "/api/v1/user/login")
+                            builder.pattern(HttpMethod.POST, "/api/v1/user/login"),
+                            builder.pattern(HttpMethod.POST, "/api/v1/token/refresh")
                     ).permitAll()
                     .anyRequest().authenticated();
         });

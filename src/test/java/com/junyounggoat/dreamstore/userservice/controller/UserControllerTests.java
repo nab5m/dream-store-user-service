@@ -107,7 +107,7 @@ public class UserControllerTests {
                 .build();
 
         given(userService.createUserByLoginCredentials(any()))
-                .willReturn(tokenService.createAccessTokenResponse(1L));
+                .willReturn(tokenService.createAccessTokenWithRefreshToken(1L));
     }
 
     private ResultActions requestPost(String endpoint, String requestData) throws Exception {

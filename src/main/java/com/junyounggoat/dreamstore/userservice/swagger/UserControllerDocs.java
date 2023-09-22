@@ -62,10 +62,11 @@ public abstract class UserControllerDocs {
                     content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "필수값 누락, 잘못된 형식의 입력, 중복된 값 입력",
                     content = @Content(schema = @Schema(example = "{\n" +
-                            "    \"errors\": {\n" +
+                            "    \"fieldErrors\": {\n" +
                             "        \"user.userPersonName\": \"2~30자의 이름을 입력해주세요.\",\n" +
                             "        \"userLoginCredentials.loginUserName\": \"영문, 숫자, 한글, 특수문자로 4~20자를 입력해주세요.\"\n" +
-                            "    }\n" +
+                            "    }," +
+                            "    \"notFieldErrors\": []\n" +
                             "}")))
     })
     public @interface CreateUserDocs { }
