@@ -14,13 +14,13 @@ import java.util.List;
 @Builder
 @Getter
 public class MyUserDTO {
-    private UserDTO user;
+    private MyUserDTOUser user;
     private UserPrivacyUsagePeriodDTO userPrivacyUsagePeriod;
     private List<UserLoginCategoryDTO> userLoginCategoryList;
     private List<UserAgreementItemDTO> userAgreementItemList;
 
     @Getter
-    public static class UserDTO {
+    public static class MyUserDTOUser {
         private final long userId;
         private final boolean userNonmemberFlag;
         private final String userPersonName;
@@ -34,7 +34,7 @@ public class MyUserDTO {
         private final LocalDateTime deletionDateTime;
 
         @Builder
-        public UserDTO(User user) {
+        public MyUserDTOUser(User user) {
             this.userId = user.getUserId();
             this.userNonmemberFlag = user.isUserNonmemberFlag();
             this.userPersonName = user.getUserPersonName();

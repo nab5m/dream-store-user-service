@@ -104,7 +104,7 @@ public class UserService {
         }
 
         return MyUserDTO.builder()
-                .user(MyUserDTO.UserDTO.builder().user(user).build())
+                .user(MyUserDTO.MyUserDTOUser.builder().user(user).build())
                 .userPrivacyUsagePeriod(MyUserDTO.UserPrivacyUsagePeriodDTO.builder()
                         .userPrivacyUsagePeriod(user.getUserPrivacyUsagePeriod())
                         .build())
