@@ -117,6 +117,7 @@ public abstract class UserControllerDocs {
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @Operation(summary = "사용자 수정")
+    @SecurityRequirement(name = SECURITY_SCHEME_NAME)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용자 수정 성공",
                     content = @Content(schema = @Schema(implementation = OtherUserDTO.class))),
