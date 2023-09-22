@@ -32,4 +32,8 @@ public class RefreshTokenRepository {
                 .refreshToken(refreshToken)
                 .build();
     }
+
+    public Boolean deleteById(final String refreshToken) {
+        return redisTemplate.delete(refreshToken);
+    }
 }

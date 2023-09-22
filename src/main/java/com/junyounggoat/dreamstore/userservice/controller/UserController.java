@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static com.junyounggoat.dreamstore.userservice.service.TokenService.JWT_CLAIM_USER_ID;
+import static com.junyounggoat.dreamstore.userservice.validation.NotValidException.throwIfErrorExists;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -159,20 +160,6 @@ public class UserController {
         return response;
     }
 
-    @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
-    public static class UnAuthorizedException extends RuntimeException {
-        public UnAuthorizedException(String message) {
-            super(message);
-        }
-    }
-
-    @ResponseStatus(code = HttpStatus.NOT_FOUND)
-    public static class NotFoundException extends RuntimeException {
-        public NotFoundException(String message) {
-            super(message);
-        }
-    }
-
     @GetMapping("/mine")
     @UserControllerDocs.GetMyUserDocs
     public MyUserDTO getMyUser(@AuthenticationPrincipal UserDetails userDetails) {
@@ -246,12 +233,6 @@ public class UserController {
         }
 
         return updateMyUserResponseDTO;
-    }
-
-    private void throwIfErrorExists(Errors errors) {
-        if (errors.hasErrors()) {
-            throw NotValidException.builder().errors(errors).build();
-        }
     }
 
     private Long getUserIdFromUserDetails(@Nullable UserDetails userDetails) {

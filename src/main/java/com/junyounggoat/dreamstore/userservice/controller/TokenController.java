@@ -1,6 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.controller;
 
-import com.junyounggoat.dreamstore.userservice.dto.TokenRefreshRequestDTO;
+import com.junyounggoat.dreamstore.userservice.dto.RefreshTokenDTO;
 import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.redishash.RefreshToken;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
+import static com.junyounggoat.dreamstore.userservice.validation.NotValidException.throwIfErrorExists;
+
 
 @RestController
 @RequestMapping("/api/v1/token")
@@ -25,10 +27,8 @@ public class TokenController {
     @PostMapping("/refresh")
     @ResponseStatus(code = HttpStatus.CREATED)
     @TokenControllerDocs.TokenRefreshDocs
-    public TokenResponseDTO tokenRefresh(@RequestBody @Valid TokenRefreshRequestDTO tokenRefreshRequestDTO, Errors errors) {
-        if (errors.hasErrors()) {
-            throw NotValidException.builder().errors(errors).build();
-        }
+    public TokenResponseDTO tokenRefresh(@RequestBody @Valid RefreshTokenDTO tokenRefreshRequestDTO, Errors errors) {
+        throwIfErrorExists(errors);
 
         String refreshToken = tokenRefreshRequestDTO.getRefreshToken();
         Claims claims = TokenService.getClaims(refreshToken);
@@ -52,5 +52,12 @@ public class TokenController {
     private void throwNotValidRefreshTokenException(Errors errors) {
         errors.rejectValue("refreshToken", "InvalidRefreshToken", "리프레시 토큰이 유효하지 않습니다.");
         throw NotValidException.builder().errors(errors).build();
+    }
+
+    @DeleteMapping("")
+    @ResponseStatus(value = HttpStatus.NO_CONTENT)
+    @TokenControllerDocs.DeleteRefreshTokenDocs
+    public void deleteRefreshToken(@RequestBody @Valid final RefreshTokenDTO refreshTokenDTO) {
+        tokenService.deleteRefreshToken(refreshTokenDTO.getRefreshToken());
     }
 }

@@ -1,7 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.swagger;
 
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.TokenRefreshRequestDTO;
+import com.junyounggoat.dreamstore.userservice.dto.RefreshTokenDTO;
 import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,7 +19,7 @@ public abstract class TokenControllerDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @Operation(summary = "리프레시 토큰으로 엑세스 토큰 갱신")
     @RequestBody(
-            content = @Content(schema = @Schema(implementation = TokenRefreshRequestDTO.class))
+            content = @Content(schema = @Schema(implementation = RefreshTokenDTO.class))
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "리프레시 토큰 검증 성공 및 accessToken 재발급",
@@ -34,4 +33,22 @@ public abstract class TokenControllerDocs {
                             "}")))
     })
     public @interface TokenRefreshDocs { }
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "리프레시 토큰 삭제 (로그아웃)")
+    @RequestBody(
+            content = @Content(schema = @Schema(implementation = RefreshTokenDTO.class))
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "리프레시 토큰 삭제 성공"),
+            @ApiResponse(responseCode = "400", description = "유효하지 않은 리프레시 토큰",
+                    content = @Content(schema = @Schema(example = "{\n" +
+                            "    \"fieldErrors\": {\n" +
+                            "        \"refreshToken\": \"리프레시 토큰이 유효하지 않습니다.\"\n" +
+                            "    },\n" +
+                            "    \"notFieldErrors\": []\n" +
+                            "}")))
+    })
+    public @interface DeleteRefreshTokenDocs { }
 }

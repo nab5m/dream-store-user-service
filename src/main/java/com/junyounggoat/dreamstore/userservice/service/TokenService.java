@@ -98,4 +98,8 @@ public class TokenService {
     public @Nullable RefreshToken getRefreshToken(String refreshToken) {
         return refreshTokenRepository.findById(refreshToken);
     }
+
+    public Boolean deleteRefreshToken(final String refreshToken) {
+        return refreshTokenRepository.deleteById(refreshToken);
+    }
 }
