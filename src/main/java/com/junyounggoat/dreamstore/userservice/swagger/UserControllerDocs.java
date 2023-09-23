@@ -1,9 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.swagger;
 
-import com.junyounggoat.dreamstore.userservice.dto.CreateUserRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
-import com.junyounggoat.dreamstore.userservice.dto.MyUserDTO;
-import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
+import com.junyounggoat.dreamstore.userservice.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,21 +16,18 @@ import java.lang.annotation.Target;
 
 import static com.junyounggoat.dreamstore.userservice.config.OpenApiConfig.SECURITY_SCHEME_NAME;
 import static com.junyounggoat.dreamstore.userservice.controller.UserController.USER_NOT_FOUND_MESSAGE;
+import static com.junyounggoat.dreamstore.userservice.swagger.DocumentMessages.*;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.RAW_LOGIN_USER_PASSWORD_MESSAGE;
-import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
 
 public abstract class UserControllerDocs {
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @Operation(summary = "사용자로그인자격증명으로 가입")
     @RequestBody(
-            description = "<h3>사용자사람이름</h3>" +
-                    USER_PERSON_NAME_MESSAGE +
-                    "<h3>사용자이메일주소 (UNIQUE)</h3>" +
-                    USER_EMAIL_ADDRESS_MESSAGE +
-                    "<h3>사용자휴대폰번호 (UNIQUE)</h3>" +
-                    USER_PHONE_NUMBER_MESSAGE +
+            description = USER_PERSON_NAME_DESCRIPTION +
+                    USER_EMAIL_ADDRESS_DESCRIPTION +
+                    USER_PHONE_NUMBER_DESCRIPTION +
                     "<h3>로그인사용자이름 (UNIQUE)</h3>" +
                     LOGIN_USER_NAME_MESSAGE +
                     "<h3>로그인사용자비밀번호</h3>" +
@@ -47,14 +41,7 @@ public abstract class UserControllerDocs {
                     "<li>푸시알림 수신 (선택) - 4 </li>" +
                     "<li>이메일 수신 (선택) - 5 </li>" +
                     "</ul>" +
-                    "<h3>사용자개인정보사용기간 - 코드</h3>" +
-                    "코드가 초 단위로 표시됩니다. <br/>" +
-                    "<ul>" +
-                    "<li>1년 - 31536000</li>" +
-                    "<li>3년 - 94608000</li>" +
-                    "<li>5년 - 157680000</li>" +
-                    "<li>평생회원 - 0</li>" +
-                    "</ul>",
+                    USER_PRIVACY_USAGE_PERIOD_CODE_DESCRIPTION,
             content = @Content(schema = @Schema(implementation = CreateUserRequestDTO.class))
     )
     @ApiResponses(value = {
@@ -119,6 +106,15 @@ public abstract class UserControllerDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @Operation(summary = "사용자 수정")
     @SecurityRequirement(name = SECURITY_SCHEME_NAME)
+    @RequestBody(
+            description = USER_PERSON_NAME_DESCRIPTION +
+                    USER_EMAIL_ADDRESS_DESCRIPTION +
+                    USER_PHONE_NUMBER_DESCRIPTION +
+                    USER_NICKNAME_DESCRIPTION +
+                    USER_GENDER_CODE_DESCRIPTION +
+                    USER_BIRTH_DATE_DESCRIPTION,
+            content = @Content(schema = @Schema(implementation = UpdateMyUserRequestDTO.class))
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용자 수정 성공",
                     content = @Content(schema = @Schema(implementation = OtherUserDTO.class))),

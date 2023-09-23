@@ -15,6 +15,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static com.junyounggoat.dreamstore.userservice.config.OpenApiConfig.SECURITY_SCHEME_NAME;
+import static com.junyounggoat.dreamstore.userservice.swagger.DocumentMessages.USER_PRIVACY_USAGE_PERIOD_CODE_DESCRIPTION;
 
 public abstract class UserPrivacyUsagePeriodControllerDocs {
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
@@ -22,6 +23,7 @@ public abstract class UserPrivacyUsagePeriodControllerDocs {
     @Operation(summary = "사용자개인정보사용기간 수정")
     @SecurityRequirement(name = SECURITY_SCHEME_NAME)
     @RequestBody(
+            description = USER_PRIVACY_USAGE_PERIOD_CODE_DESCRIPTION,
             content = @Content(schema = @Schema(implementation = UpdateUserPrivacyUsagePeriodRequestDTO.class))
     )
     @ApiResponses(value = {

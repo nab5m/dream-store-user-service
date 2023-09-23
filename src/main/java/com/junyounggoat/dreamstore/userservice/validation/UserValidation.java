@@ -25,6 +25,8 @@ public abstract class UserValidation {
     public static final String USER_PHONE_NUMBER_MESSAGE = USER_PHONE_NUMBER_MIN_LENGTH + "~" + USER_PHONE_NUMBER_MAX_LENGTH + "자의 휴대폰 번호를 입력해주세요.";
     public static final int USER_NICKNAME_MIN_LENGTH = 1;
     public static final int USER_NICKNAME_MAX_LENGTH = 30;
+    public static final String USER_NICKNAME_ERROR_MESSAGE = USER_NICKNAME_MIN_LENGTH + "~" + USER_NICKNAME_MAX_LENGTH + "자의 닉네임을 입력해주세요.";
+    public static final String USER_BIRTH_DATE_ERROR_MESSAGE = "오늘이나 과거의 날짜를 입력해주세요.";
 
     @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)
@@ -80,7 +82,7 @@ public abstract class UserValidation {
     @Constraint(validatedBy = {})
     @ReportAsSingleViolation
     public @interface UserNickname {
-        String message() default USER_NICKNAME_MIN_LENGTH + "~" + USER_NICKNAME_MAX_LENGTH + "자의 닉네임을 입력해주세요.";
+        String message() default USER_NICKNAME_ERROR_MESSAGE;
         Class<?>[] groups() default {};
         Class<? extends Payload>[] payload() default {};
     }
@@ -99,7 +101,7 @@ public abstract class UserValidation {
     @PastOrPresent
     @ReportAsSingleViolation
     public @interface UserBirthDate {
-        String message() default "오늘이나 과거의 날짜를 입력해주세요.";
+        String message() default USER_BIRTH_DATE_ERROR_MESSAGE;
         Class<?>[] groups() default {};
         Class<? extends Payload>[] payload() default {};
     }
