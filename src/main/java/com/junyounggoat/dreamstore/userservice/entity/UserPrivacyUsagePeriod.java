@@ -35,8 +35,7 @@ public class UserPrivacyUsagePeriod {
     @NotNull
     private LocalDateTime usageStartDateTime;
 
-    @Column(nullable = false)
-    @NotNull
+    @Transient
     private LocalDateTime usageEndDateTime;
 
     @Embedded
