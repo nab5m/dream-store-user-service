@@ -80,4 +80,51 @@ public class UniqueColumnValidator implements Validator {
             }
         }
     }
+
+    public static void validateUniqueUserEmailAddress(UniqueColumnValidator uniqueColumnValidator, String field, String userEmailAddress, Errors errors) {
+        validateUniqueUserEmailAddress(uniqueColumnValidator, field, userEmailAddress, null, errors);
+    }
+
+    public static void validateUniqueUserEmailAddress(UniqueColumnValidator uniqueColumnValidator, String field,
+                                               String userEmailAddress, Long excludingRowId, Errors errors) {
+        uniqueColumnValidator.validate(
+                UniqueColumnValidator.Target.builder()
+                        .field(field)
+                        .uniqueColumn(UniqueColumn.UserEmailAddress)
+                        .excludingRowId(excludingRowId)
+                        .value(userEmailAddress)
+                        .build(),
+                errors
+        );
+    }
+
+    public static void validateUniqueUserPhoneNumber(UniqueColumnValidator uniqueColumnValidator, String field,
+                                                     String userPhoneNumber, Errors errors) {
+        validateUniqueUserPhoneNumber(uniqueColumnValidator, field, userPhoneNumber, null, errors);
+    }
+
+    public static void validateUniqueUserPhoneNumber(UniqueColumnValidator uniqueColumnValidator, String field,
+                                                     String userPhoneNumber, Long excludingRowId, Errors errors) {
+        uniqueColumnValidator.validate(
+                UniqueColumnValidator.Target.builder()
+                        .field(field)
+                        .uniqueColumn(UniqueColumn.UserPhoneNumber)
+                        .excludingRowId(excludingRowId)
+                        .value(userPhoneNumber)
+                        .build(),
+                errors
+        );
+    }
+
+    public static void validateUniqueLoginUserName(UniqueColumnValidator uniqueColumnValidator, String field,
+                                                   String loginUserName, Errors errors) {
+        uniqueColumnValidator.validate(
+                UniqueColumnValidator.Target.builder()
+                        .field(field)
+                        .uniqueColumn(UniqueColumn.LoginUserName)
+                        .value(loginUserName)
+                        .build(),
+                errors
+        );
+    }
 }

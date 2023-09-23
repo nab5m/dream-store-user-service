@@ -47,4 +47,15 @@ public class RequiredUserAgreementItemValidator implements Validator {
             }
         }
     }
+
+    public static void validateRequiredUserAgreementItem(RequiredUserAgreementItemValidator requiredUserAgreementItemValidator,
+                                                         String field, List<Integer> codeList, Errors errors) {
+        requiredUserAgreementItemValidator.validate(
+                RequiredUserAgreementItemValidator.Target.builder()
+                        .field(field)
+                        .targetCodeList(codeList)
+                        .build(),
+                errors
+        );
+    }
 }

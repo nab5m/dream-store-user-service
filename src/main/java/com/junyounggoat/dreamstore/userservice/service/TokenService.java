@@ -3,6 +3,7 @@ package com.junyounggoat.dreamstore.userservice.service;
 import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
 import com.junyounggoat.dreamstore.userservice.redishash.RefreshToken;
 import com.junyounggoat.dreamstore.userservice.repository.RefreshTokenRepository;
+import com.junyounggoat.dreamstore.userservice.validation.UnAuthorizedException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,8 @@ import java.security.KeyPair;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+
+import static com.junyounggoat.dreamstore.userservice.validation.UnAuthorizedException.LOGIN_REQUIRED_ERROR_MESSAGE;
 
 
 @Service
@@ -101,5 +105,29 @@ public class TokenService {
 
     public Boolean deleteRefreshToken(final String refreshToken) {
         return refreshTokenRepository.deleteById(refreshToken);
+    }
+
+    public static Long getUserIdFromUserDetails(@Nullable UserDetails userDetails) {
+        // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
+        if (userDetails == null) {
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
+        }
+
+        String token = userDetails.getPassword();
+        Claims claims = getClaims(token);
+        if (claims == null) {
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
+        }
+
+        Long userId;
+        try {
+            userId = claims.get(JWT_CLAIM_USER_ID, Long.class);
+        } catch (RequiredTypeException e) {
+            logger.info("TypeCastUserId Failed : " + token);
+
+            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
+        }
+
+        return userId;
     }
 }

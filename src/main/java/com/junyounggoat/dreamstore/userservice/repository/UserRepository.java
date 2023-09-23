@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,10 +22,12 @@ public class UserRepository {
     private final QUser qUser = QUser.user;
     private final QUserLoginCategory qUserLoginCategory = QUserLoginCategory.userLoginCategory;
     private final QUserLoginCredentials qUserLoginCredentials = QUserLoginCredentials.userLoginCredentials;
+    private final QUserPrivacyUsagePeriod qUserPrivacyUsagePeriod = QUserPrivacyUsagePeriod.userPrivacyUsagePeriod;
 
     private final BooleanExpression qUserIsNotDeleted = qUser.timestamp.deletionDateTime.isNull();
     private final BooleanExpression qUserLoginCategoryIsNotDeleted = qUserLoginCategory.deletionDateTime.isNull();
     private final BooleanExpression qUserLoginCredentialsIsNotDeleted = qUserLoginCredentials.timestamp.deletionDateTime.isNull();
+    private final BooleanExpression qUserPrivacyUsagePeriodIsNotDeleted = qUserPrivacyUsagePeriod.timestamp.deletionDateTime.isNull();
 
     public User insertUser(User user) {
         User created = user.toBuilder().build();
@@ -59,6 +62,7 @@ public class UserRepository {
         UserPrivacyUsagePeriod entity = UserPrivacyUsagePeriod.builder()
                 .user(user)
                 .userPrivacyUsagePeriodCode(userPrivacyUsagePeriodCode)
+                .usageStartDateTime(LocalDateTime.now())
                 .build();
 
         entityManager.persist(entity);
@@ -120,6 +124,22 @@ public class UserRepository {
 
     public User updateUser(User user) {
         User updated = user.toBuilder().build();
+        entityManager.merge(updated);
+
+        return updated;
+    }
+
+    public @Nullable UserPrivacyUsagePeriod findUserPrivacyUsagePeriodByUserId(Long userId) {
+        return queryFactory.selectFrom(qUserPrivacyUsagePeriod)
+                .innerJoin(qUserPrivacyUsagePeriod.user, qUser)
+                .where(qUser.userId.eq(userId)
+                        .and(qUserIsNotDeleted)
+                        .and(qUserPrivacyUsagePeriodIsNotDeleted))
+                .fetchOne();
+    }
+
+    public UserPrivacyUsagePeriod updateUserPrivacyPeriod(UserPrivacyUsagePeriod userPrivacyUsagePeriod) {
+        UserPrivacyUsagePeriod updated = userPrivacyUsagePeriod.toBuilder().build();
         entityManager.merge(updated);
 
         return updated;

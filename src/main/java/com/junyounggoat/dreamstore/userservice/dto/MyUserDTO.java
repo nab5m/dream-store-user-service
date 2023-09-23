@@ -88,7 +88,6 @@ public class MyUserDTO {
         private final long userPrivacyUsagePeriodId;
         private final int userPrivacyUsagePeriodCode;
         private final LocalDateTime usageStartDateTime;
-        private final LocalDateTime usageEndDateTime;
         private final LocalDateTime creationDateTime;
         private final LocalDateTime lastUpdateDateTime;
         private final LocalDateTime deletionDateTime;
@@ -98,7 +97,6 @@ public class MyUserDTO {
             this.userPrivacyUsagePeriodId = userPrivacyUsagePeriod.getUserPrivacyUsagePeriodId();
             this.userPrivacyUsagePeriodCode = userPrivacyUsagePeriod.getUserPrivacyUsagePeriodCode();
             this.usageStartDateTime = userPrivacyUsagePeriod.getUsageStartDateTime();
-            this.usageEndDateTime = userPrivacyUsagePeriod.getUsageEndDateTime();
             this.creationDateTime = userPrivacyUsagePeriod.getTimestamp().getCreationDateTime();
             this.lastUpdateDateTime = userPrivacyUsagePeriod.getTimestamp().getLastUpdateDateTime();
             this.deletionDateTime = userPrivacyUsagePeriod.getTimestamp().getDeletionDateTime();

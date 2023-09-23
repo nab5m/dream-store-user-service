@@ -66,4 +66,15 @@ public class CodeExistValidator implements Validator {
             }
         });
     }
+
+    public static void validateCodeExists(CodeExistValidator codeExistValidator,
+                                          List<CodeExistValidator.TargetCodeItem> codeItemList,
+                                          Errors errors) {
+        codeExistValidator.validate(
+                CodeExistValidator.Target.builder()
+                        .targetCodeList(codeItemList)
+                        .build(),
+                errors
+        );
+    }
 }

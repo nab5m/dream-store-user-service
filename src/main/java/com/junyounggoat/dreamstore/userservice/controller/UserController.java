@@ -1,22 +1,18 @@
 package com.junyounggoat.dreamstore.userservice.controller;
 
 import com.junyounggoat.dreamstore.userservice.constant.CodeCategoryName;
-import com.junyounggoat.dreamstore.userservice.constant.UniqueColumn;
 import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.*;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.RequiredTypeException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.Errors;
@@ -25,8 +21,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.junyounggoat.dreamstore.userservice.service.TokenService.JWT_CLAIM_USER_ID;
+import static com.junyounggoat.dreamstore.userservice.service.TokenService.getUserIdFromUserDetails;
+import static com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator.validateCodeExists;
 import static com.junyounggoat.dreamstore.userservice.validation.NotValidException.throwIfErrorExists;
+import static com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementItemValidator.validateRequiredUserAgreementItem;
+import static com.junyounggoat.dreamstore.userservice.validation.UnAuthorizedException.LOGIN_REQUIRED_ERROR_MESSAGE;
+import static com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator.*;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -34,7 +34,6 @@ import static com.junyounggoat.dreamstore.userservice.validation.NotValidExcepti
 @Tag(name = "UserController", description = "사용자 컨트롤러")
 public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    private static final String LOGIN_REQUIRED_ERROR_MESSAGE = "로그인이 필요합니다.";
     public static final String USER_NOT_FOUND_MESSAGE = "존재하지 않는 사용자입니다.";
 
     private final UserService userService;
@@ -49,9 +48,18 @@ public class UserController {
     public TokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
         throwIfErrorExists(errors);
 
-        validateUniqueUserEmailAddress("user.userEmailAddress", createUserRequestDTO.getUser().getUserEmailAddress(), errors);
-        validateUniqueUserPhoneNumber("user.userPhoneNumber", createUserRequestDTO.getUser().getUserPhoneNumber(), errors);
-        validateUniqueLoginUserName("userLoginCredentials.loginUserName", createUserRequestDTO.getUserLoginCredentials().getLoginUserName(), errors);
+        validateUniqueUserEmailAddress(uniqueColumnValidator,
+                "user.userEmailAddress",
+                createUserRequestDTO.getUser().getUserEmailAddress(),
+                errors);
+        validateUniqueUserPhoneNumber(uniqueColumnValidator,
+                "user.userPhoneNumber",
+                createUserRequestDTO.getUser().getUserPhoneNumber(),
+                errors);
+        validateUniqueLoginUserName(uniqueColumnValidator,
+                "userLoginCredentials.loginUserName",
+                createUserRequestDTO.getUserLoginCredentials().getLoginUserName(),
+                errors);
 
         // 이렇게 검증이 필요하다면 그냥 fk를 걸었지 싶다
         List<CodeExistValidator.TargetCodeItem> usedCodeList = new LinkedList<>();
@@ -73,77 +81,16 @@ public class UserController {
                 .field("userPrivacyUsagePeriodCode")
                 .build());
 
-        validateCodeExists(usedCodeList, errors);
-        validateRequiredUserAgreementItem("userAgreementItemCodeList", createUserRequestDTO.getUserAgreementItemCodeList(), errors);
+        validateCodeExists(codeExistValidator, usedCodeList, errors);
+        validateRequiredUserAgreementItem(requiredUserAgreementItemValidator,
+                "userAgreementItemCodeList",
+                createUserRequestDTO.getUserAgreementItemCodeList(),
+                errors);
 
         throwIfErrorExists(errors);
 
         return userService.createUserByLoginCredentials(createUserRequestDTO);
     }
-
-    // ToDo: 이것도 Validator 클래스 안 쪽으로 집어넣을까?
-    private void validateUniqueUserEmailAddress(String field, String userEmailAddress, Errors errors) {
-        validateUniqueUserEmailAddress(field, userEmailAddress, null, errors);
-    }
-
-    private void validateUniqueUserEmailAddress(String field, String userEmailAddress, Long excludingRowId, Errors errors) {
-        uniqueColumnValidator.validate(
-                UniqueColumnValidator.Target.builder()
-                        .field(field)
-                        .uniqueColumn(UniqueColumn.UserEmailAddress)
-                        .excludingRowId(excludingRowId)
-                        .value(userEmailAddress)
-                        .build(),
-                errors
-        );
-    }
-
-    private void validateUniqueUserPhoneNumber(String field, String userPhoneNumber, Errors errors) {
-        validateUniqueUserPhoneNumber(field, userPhoneNumber, null, errors);
-    }
-
-    private void validateUniqueUserPhoneNumber(String field, String userPhoneNumber, Long excludingRowId, Errors errors) {
-        uniqueColumnValidator.validate(
-                UniqueColumnValidator.Target.builder()
-                        .field(field)
-                        .uniqueColumn(UniqueColumn.UserPhoneNumber)
-                        .excludingRowId(excludingRowId)
-                        .value(userPhoneNumber)
-                        .build(),
-                errors
-        );
-    }
-
-    private void validateUniqueLoginUserName(String field, String loginUserName, Errors errors) {
-        uniqueColumnValidator.validate(
-                UniqueColumnValidator.Target.builder()
-                        .field(field)
-                        .uniqueColumn(UniqueColumn.LoginUserName)
-                        .value(loginUserName)
-                        .build(),
-                errors
-        );
-    }
-
-    private void validateRequiredUserAgreementItem(String field, List<Integer> codeList, Errors errors) {
-        requiredUserAgreementItemValidator.validate(
-                RequiredUserAgreementItemValidator.Target.builder()
-                        .field(field)
-                        .targetCodeList(codeList)
-                        .build(),
-                errors
-        );
-    }
-
-    private void validateCodeExists(List<CodeExistValidator.TargetCodeItem> codeItemList, Errors errors) {
-        codeExistValidator.validate(
-                CodeExistValidator.Target.builder()
-                        .targetCodeList(codeItemList)
-                        .build(),
-                errors
-        );
-    }
-
 
     @PostMapping("/login")
     @UserControllerDocs.LoginDocs
@@ -199,8 +146,16 @@ public class UserController {
 
         Long userId = getUserIdFromUserDetails(userDetails);
 
-        validateUniqueUserEmailAddress("userEmailAddress", updateMyUserRequestDTO.getUserEmailAddress(), userId, errors);
-        validateUniqueUserPhoneNumber("userPhoneNumber", updateMyUserRequestDTO.getUserPhoneNumber(), userId, errors);
+        validateUniqueUserEmailAddress(uniqueColumnValidator,
+                "userEmailAddress",
+                updateMyUserRequestDTO.getUserEmailAddress(),
+                userId,
+                errors);
+        validateUniqueUserPhoneNumber(uniqueColumnValidator,
+                "userPhoneNumber",
+                updateMyUserRequestDTO.getUserPhoneNumber(),
+                userId,
+                errors);
 
         Integer userGenderCode = updateMyUserRequestDTO.getUserGenderCode();
 
@@ -214,7 +169,7 @@ public class UserController {
                     .field("userGenderCode")
                     .build());
 
-            validateCodeExists(usedCodeList, errors);
+            validateCodeExists(codeExistValidator, usedCodeList, errors);
         }
 
         throwIfErrorExists(errors);
@@ -233,29 +188,5 @@ public class UserController {
         }
 
         return updateMyUserResponseDTO;
-    }
-
-    private Long getUserIdFromUserDetails(@Nullable UserDetails userDetails) {
-        // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
-        if (userDetails == null) {
-            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
-        }
-
-        String token = userDetails.getPassword();
-        Claims claims = tokenService.getClaims(token);
-        if (claims == null) {
-            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
-        }
-
-        Long userId;
-        try {
-            userId = claims.get(JWT_CLAIM_USER_ID, Long.class);
-        } catch (RequiredTypeException e) {
-            logger.info("TypeCastUserId Failed : " + token);
-
-            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
-        }
-
-        return userId;
     }
 }
