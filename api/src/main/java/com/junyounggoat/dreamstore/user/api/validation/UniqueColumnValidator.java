@@ -41,13 +41,15 @@ public class UniqueColumnValidator implements Validator {
             case UserEmailAddress -> validateUniqueUserEmailAddress(target, errors);
             case UserPhoneNumber -> validateUniqueUserPhoneNumber(target, errors);
             case LoginUserName -> validateUniqueLoginUserName(target, errors);
+            case UserNickname -> validateUniqueUserNickname(target, errors);
             default -> throw new RuntimeException("UniqueColumnValidator - Not Supported Column.");
         }
     }
 
     private void validateUniqueUserEmailAddress(Target target, Errors errors) {
-        User user = userRepository.findUserByUserEmailAddress((String) target.getValue(), target.getExcludingRowId());
-        if (user != null) {
+        User user = userRepository.findUserByUserEmailAddress((String) target.getValue());
+        Long excludingRowId = target.getExcludingRowId();
+        if (user != null && (excludingRowId == null || !excludingRowId.equals(user.getUserId()))) {
             String ERROR_MESSAGE = "이미 사용 중인 이메일 주소입니다.";
             try {
                 errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
@@ -58,8 +60,9 @@ public class UniqueColumnValidator implements Validator {
     }
 
     private void validateUniqueUserPhoneNumber(Target target, Errors errors) {
-        User user = userRepository.findUserByUserPhoneNumber((String) target.getValue(), target.getExcludingRowId());
-        if (user != null) {
+        User user = userRepository.findUserByUserPhoneNumber((String) target.getValue());
+        Long excludingRowId = target.getExcludingRowId();
+        if (user != null && (excludingRowId == null || !excludingRowId.equals(user.getUserId()))) {
             String ERROR_MESSAGE = "이미 사용 중인 휴대폰 번호입니다.";
             try {
                 errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
@@ -73,6 +76,18 @@ public class UniqueColumnValidator implements Validator {
         UserLoginCredentials userLoginCredentials = userRepository.findUserLoginCredentialsByLoginUserName((String) target.getValue());
         if (userLoginCredentials != null) {
             String ERROR_MESSAGE = "이미 사용 중인 아이디입니다.";
+            try {
+                errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
+            } catch (NotReadablePropertyException exception) {
+                errors.reject(ERROR_CODE, ERROR_MESSAGE);
+            }
+        }
+    }
+    private void validateUniqueUserNickname(Target target, Errors errors) {
+        User user = userRepository.findUserByUserNickname((String) target.getValue());
+        Long excludingRowId = target.getExcludingRowId();
+        if (user != null && (excludingRowId == null || !excludingRowId.equals(user.getUserId()))) {
+            String ERROR_MESSAGE = "이미 사용 중인 닉네임입니다.";
             try {
                 errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
@@ -123,6 +138,19 @@ public class UniqueColumnValidator implements Validator {
                         .field(field)
                         .uniqueColumn(UniqueColumn.LoginUserName)
                         .value(loginUserName)
+                        .build(),
+                errors
+        );
+    }
+
+    public static void validateUniqueUserNickname(UniqueColumnValidator uniqueColumnValidator, String field,
+                                                  String userNickname, Long excludingRowId, Errors errors) {
+        uniqueColumnValidator.validate(
+                Target.builder()
+                        .field(field)
+                        .uniqueColumn(UniqueColumn.UserNickname)
+                        .value(userNickname)
+                        .excludingRowId(excludingRowId)
                         .build(),
                 errors
         );

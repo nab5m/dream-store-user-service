@@ -1,0 +1,3 @@
+-- UNIQUE 설정
+ALTER TABLE `user`
+    MODIFY COLUMN user_nickname VARCHAR(30) NULL UNIQUE;

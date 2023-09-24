@@ -157,6 +157,14 @@ public class UserController {
                 updateMyUserRequestDTO.getUserPhoneNumber(),
                 userId,
                 errors);
+        String userNickname = updateMyUserRequestDTO.getUserNickname();
+        if (userNickname != null) {
+            validateUniqueUserNickname(uniqueColumnValidator,
+                    "userNickname",
+                    userNickname,
+                    userId,
+                    errors);
+        }
 
         Integer userGenderCode = updateMyUserRequestDTO.getUserGenderCode();
 
