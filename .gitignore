@@ -37,8 +37,8 @@ out/
 .vscode/
 
 # Elastic Beanstalk Files
-api/.elasticbeanstalk/*
+.elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-api/.ebextensions
-api/Dockerrun.aws.json
+.ebextensions
+Dockerrun.aws.json
