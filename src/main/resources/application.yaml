@@ -1,6 +1,5 @@
 spring:
   profiles:
-    include: repository
     active: develop-h2
     group:
       develop-h2:
