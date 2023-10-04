@@ -43,9 +43,15 @@ public class MyUserDTO {
             this.userNickname = user.getUserNickname();
             this.userGenderCode = user.getUserGenderCode();
             this.userBirthDate = user.getUserBirthDate();
-            this.creationDateTime = user.getTimestamp().getCreationDateTime();
-            this.lastUpdateDateTime = user.getTimestamp().getLastUpdateDateTime();
-            this.deletionDateTime = user.getTimestamp().getDeletionDateTime();
+            if (user.getTimestamp() != null) {
+                this.creationDateTime = user.getTimestamp().getCreationDateTime();
+                this.lastUpdateDateTime = user.getTimestamp().getLastUpdateDateTime();
+                this.deletionDateTime = user.getTimestamp().getDeletionDateTime();
+            } else {
+                this.creationDateTime = null;
+                this.lastUpdateDateTime = null;
+                this.deletionDateTime = null;
+            }
         }
     }
 
@@ -77,9 +83,15 @@ public class MyUserDTO {
         public UserAgreementItemDTO(UserAgreementItem userAgreementItem) {
             this.userAgreementItemId = userAgreementItem.getUserAgreementItemId();
             this.userAgreementItemCode = userAgreementItem.getUserAgreementItemCode();
-            this.creationDateTime = userAgreementItem.getTimestamp().getCreationDateTime();
-            this.lastUpdateDateTime = userAgreementItem.getTimestamp().getLastUpdateDateTime();
-            this.deletionDateTime = userAgreementItem.getTimestamp().getDeletionDateTime();
+            if (userAgreementItem.getTimestamp() != null) {
+                this.creationDateTime = userAgreementItem.getTimestamp().getCreationDateTime();
+                this.lastUpdateDateTime = userAgreementItem.getTimestamp().getLastUpdateDateTime();
+                this.deletionDateTime = userAgreementItem.getTimestamp().getDeletionDateTime();
+            } else {
+                this.creationDateTime = null;
+                this.lastUpdateDateTime = null;
+                this.deletionDateTime = null;
+            }
         }
     }
 
@@ -97,9 +109,15 @@ public class MyUserDTO {
             this.userPrivacyUsagePeriodId = userPrivacyUsagePeriod.getUserPrivacyUsagePeriodId();
             this.userPrivacyUsagePeriodCode = userPrivacyUsagePeriod.getUserPrivacyUsagePeriodCode();
             this.usageStartDateTime = userPrivacyUsagePeriod.getUsageStartDateTime();
-            this.creationDateTime = userPrivacyUsagePeriod.getTimestamp().getCreationDateTime();
-            this.lastUpdateDateTime = userPrivacyUsagePeriod.getTimestamp().getLastUpdateDateTime();
-            this.deletionDateTime = userPrivacyUsagePeriod.getTimestamp().getDeletionDateTime();
+            if (userPrivacyUsagePeriod.getTimestamp() != null) {
+                this.creationDateTime = userPrivacyUsagePeriod.getTimestamp().getCreationDateTime();
+                this.lastUpdateDateTime = userPrivacyUsagePeriod.getTimestamp().getLastUpdateDateTime();
+                this.deletionDateTime = userPrivacyUsagePeriod.getTimestamp().getDeletionDateTime();
+            } else {
+                this.creationDateTime = null;
+                this.lastUpdateDateTime = null;
+                this.deletionDateTime = null;
+            }
         }
     }
 }

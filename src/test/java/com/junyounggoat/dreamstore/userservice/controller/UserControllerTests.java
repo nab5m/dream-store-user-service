@@ -5,8 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.junyounggoat.dreamstore.userservice.config.EmbeddedRedisConfig;
+import com.junyounggoat.dreamstore.userservice.constant.CodeGroupName;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.BadRequestDTO;
+import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
+import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
+import com.junyounggoat.dreamstore.userservice.entity.User;
+import com.junyounggoat.dreamstore.userservice.repository.CodeRepository;
+import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static com.junyounggoat.dreamstore.userservice.controller.UserController.USER_NOT_FOUND_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
@@ -43,6 +50,8 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
@@ -53,6 +62,11 @@ public class UserControllerTests {
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private CodeRepository codeRepository;
+    @Autowired
+    private UserRepository userRepository;
+
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
     private final Map<UserLoginCategoryCode, String> createUserRequestJsonString = Map.of(
@@ -66,26 +80,6 @@ public class UserControllerTests {
                     "        \"loginUserName\": \"테스터1\",\n" +
                     "        \"rawLoginUserPassword\": \"tester123%!!\"\n" +
                     "    },\n" +
-                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
-                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
-                    "}",
-            UserLoginCategoryCode.kakaoUser, "{\n" +
-                    "    \"user\": {\n" +
-                    "        \"userPersonName\": \"테스터\",\n" +
-                    "        \"userEmailAddress\": \"tester1@example.com\",\n" +
-                    "        \"userPhoneNumber\": \"01000000001\"\n" +
-                    "    },\n" +
-                    "    \"kakaoUser\": {},\n" +
-                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
-                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
-                    "}",
-            UserLoginCategoryCode.naverUser, "{\n" +
-                    "    \"user\": {\n" +
-                    "        \"userPersonName\": \"테스터\",\n" +
-                    "        \"userEmailAddress\": \"tester1@example.com\",\n" +
-                    "        \"userPhoneNumber\": \"01000000001\"\n" +
-                    "    },\n" +
-                    "    \"naverUser\": {},\n" +
                     "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
                     "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
                     "}"
@@ -105,6 +99,17 @@ public class UserControllerTests {
         return this.mockMvc.perform(post(endpoint)
                 .content(requestData)
                 .contentType(MediaType.APPLICATION_JSON));
+    }
+
+    private long createTestUser() throws Exception {
+        String requestData = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+
+        MvcResult mvcResult = this.mockMvc.perform(post("/api/v1/user")
+                .content(requestData)
+                .contentType(MediaType.APPLICATION_JSON)
+        ).andReturn();
+
+        return getUserIdFromTokenResponseDTO(mvcResult);
     }
 
 
@@ -145,6 +150,13 @@ public class UserControllerTests {
         documentContext.set(key, value);
 
         return documentContext.jsonString();
+    }
+
+    private long getUserIdFromTokenResponseDTO(MvcResult mvcResult) throws UnsupportedEncodingException, JsonProcessingException {
+        String responseBody = mvcResult.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
+
+        return ((Integer) TokenService.getClaims(tokenResponseDTO.getAccessToken()).get("userId")).longValue();
     }
 
     @Test
@@ -308,36 +320,86 @@ public class UserControllerTests {
 
     @Test
     @DisplayName("사용자 생성 시 성공 응답 JWT 검증")
-    void createUserSuccessResponseIncludesJwt() throws UnsupportedEncodingException {
+    void createUserSuccessResponseIncludesJwt() throws UnsupportedEncodingException, JsonProcessingException {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         MvcResult mvcResult = assertPostRequestCreated("/api/v1/user", jsonString).andReturn();
-        DocumentContext documentContext = JsonPath.parse(mvcResult.getResponse().getContentAsString());
-        String accessToken = documentContext.read("$.accessToken");
-
-        long userId = ((Integer) TokenService.getClaims(accessToken).get("userId")).longValue();
+        long userId = getUserIdFromTokenResponseDTO(mvcResult);
         assertTrue(userId > 0, "jwt의 userId가 비정상적입니다.");
     }
 
-    @Test
-    @DisplayName("사용자 생성 시 사용자개인정보사용기간코드 검증")
-    void createUserValidateUserPrivacyUsagePeriodCode() throws JsonProcessingException, UnsupportedEncodingException {
-        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
-        int nonValidUserPrivacyUsagePeriodCode = -100;
-        String nonValidRequestData = updateJsonValue(jsonString,
-                "$.userPrivacyUsagePeriodCode",
-                nonValidUserPrivacyUsagePeriodCode);
-
+    private void createUserValidateCodeExists(final String fieldName, final String requestData) throws JsonProcessingException, UnsupportedEncodingException {
         BadRequestDTO expectedResponse = BadRequestDTO.builder()
-                .fieldErrors(Map.of("userPrivacyUsagePeriodCode", CodeExistValidator.ERROR_MESSAGE))
+                .fieldErrors(Map.of(fieldName, CodeExistValidator.ERROR_MESSAGE))
                 .notFieldErrors(List.of())
                 .build();
 
-        String responseBody = assertPostRequestBadRequest("/api/v1/user", nonValidRequestData)
+        String responseBody = assertPostRequestBadRequest("/api/v1/user", requestData)
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
 
+        logger.debug("responseBody : " + responseBody);
+
         BadRequestDTO response = objectMapper.readValue(responseBody, BadRequestDTO.class);
         assertEquals(expectedResponse, response);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 시 사용자개인정보사용기간코드 검증")
+    void createUserValidateUserPrivacyUsagePeriodCode() throws UnsupportedEncodingException, JsonProcessingException {
+        String fieldName = "userPrivacyUsagePeriodCode";
+
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+        int nonValidCode = -100;
+        String requestData = updateJsonValue(jsonString,
+                "$." + fieldName,
+                nonValidCode);
+
+        createUserValidateCodeExists(fieldName, requestData);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 시 사용자동의항목코드 검증")
+    void createUserValidateRequiredUserAgreementItemCodeList() throws UnsupportedEncodingException, JsonProcessingException {
+        String fieldName = "userAgreementItemCodeList";
+
+        List<Integer> baseCodeList = codeRepository.findCodeListByCodeGroupName(CodeGroupName.REQUIRED_USER_AGREEMENT_ITEM.getName());
+
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+        int nonValidCode = -100;
+        String requestData = updateJsonValue(jsonString,
+                "$." + fieldName,
+                Stream.concat(baseCodeList.stream(), Stream.of(nonValidCode)).toList());
+
+        createUserValidateCodeExists(fieldName, requestData);
+    }
+
+    @Test
+    @DisplayName("사용자 조회 성공")
+    void getOtherUserSuccess() throws Exception {
+        long userId = createTestUser();
+        User user = userRepository.findUserByUserId(userId);
+
+        OtherUserDTO expectedResponse = OtherUserDTO.builder()
+                .user(user)
+                .build();
+
+        String responseBody = this.mockMvc.perform(get("/api/v1/user/" + userId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        OtherUserDTO response = objectMapper.readValue(responseBody, OtherUserDTO.class);
+        assertEquals(response, expectedResponse);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 사용자 조회")
+    void getOtherUserNotFound() throws Exception {
+        this.mockMvc.perform(get("/api/v1/user/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
     }
 }
