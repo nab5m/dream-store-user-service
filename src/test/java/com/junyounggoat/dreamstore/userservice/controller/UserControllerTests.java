@@ -1,21 +1,23 @@
 package com.junyounggoat.dreamstore.userservice.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.junyounggoat.dreamstore.userservice.config.EmbeddedRedisConfig;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
-import com.junyounggoat.dreamstore.userservice.service.UserService;
+import com.junyounggoat.dreamstore.userservice.dto.BadRequestDTO;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
-import com.junyounggoat.dreamstore.userservice.validation.RequiredUserAgreementItemValidator;
-import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
@@ -23,16 +25,20 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
+import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
+import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
@@ -40,19 +46,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
-@WebMvcTest(UserController.class)
+@SpringBootTest
+@Transactional
+@Import({ EmbeddedRedisConfig.class })
 public class UserControllerTests {
     private MockMvc mockMvc;
-    @MockBean
-    private UserService userService;
-    @MockBean
-    private TokenService tokenService;
-    @MockBean
-    private UniqueColumnValidator uniqueColumnValidator;
-    @MockBean
-    private RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
-    @MockBean
-    private CodeExistValidator codeExistValidator;
+    @Autowired
+    private ObjectMapper objectMapper;
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
     private final Map<UserLoginCategoryCode, String> createUserRequestJsonString = Map.of(
@@ -91,23 +91,11 @@ public class UserControllerTests {
                     "}"
     );
 
-    private final int USER_PERSON_NAME_MIN_LENGTH = 2;
-    private final int USER_PERSON_NAME_MAX_LENGTH = 30;
-    private final int USER_EMAIL_ADDRESS_MAX_LENGTH = 320;
-    private final int USER_PHONE_NUMBER_MIN_LENGTH = 8;
-    private final int USER_PHONE_NUMBER_MAX_LENGTH = 15;
-
-    private final int LOGIN_USER_NAME_MIN_LENGTH = 4;
-    private final int LOGIN_USER_NAME_MAX_LENGTH = 30;
-
     @BeforeEach
     private void setup(WebApplicationContext webApplicationContext, RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(documentationConfiguration(restDocumentation))
                 .build();
-
-        given(userService.createUserByLoginCredentials(any()))
-                .willReturn(tokenService.createAccessTokenWithRefreshToken(1L));
     }
 
     private ResultActions requestPost(String endpoint, String requestData) throws Exception {
@@ -161,8 +149,7 @@ public class UserControllerTests {
 
     @Test
     @DisplayName("사용자 생성 시 필수 값 검증")
-    void createUserValidateRequiredFields() throws Exception {
-        // ToDo: enum으로 바꿀 수 있을지
+    void createUserValidateRequiredFields() {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         Map<String, Object> requiredFieldsBlankValueMap = Map.of(
                 "$.user.userPersonName", "",
@@ -192,7 +179,7 @@ public class UserControllerTests {
     }
 
     @Test
-    @DisplayName("로그인사용자이름으로 사용자 생성 시 필수 값 검증")
+    @DisplayName("사용자로그인자격증명으로 사용자 생성 시 필수 값 검증")
     void createUserByLoginUserNameValidateRequiredFields() {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         Map<String, Object> requiredFieldsBlankValueMap = Map.of(
@@ -216,36 +203,6 @@ public class UserControllerTests {
 
         Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
                 .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user", requestData));
-    }
-
-    @Test
-    @DisplayName("카카오사용자로 사용자 생성 시 필수 값 검증")
-    void createUserByKakaoUserValidateRequiredFields() throws Exception {
-        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.kakaoUser);
-        List<String> requiredFieldsRemoveKeyList = List.of(
-                "$.kakaoUser"
-        );
-
-        List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
-                .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
-
-        requestDataByRemovingKeys
-                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user/kakao", requestData));
-    }
-
-    @Test
-    @DisplayName("네이버사용자로 사용자 생성 시 필수 값 검증")
-    void createUserByNaverUserValidateRequiredFields() throws Exception {
-        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
-        List<String> requiredFieldsRemoveKeyList = List.of(
-                "$.naverUser"
-        );
-
-        List<String> requestDataByRemovingKeys = requiredFieldsRemoveKeyList
-                .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
-
-        requestDataByRemovingKeys
-                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user/naver", requestData));
     }
 
     @Test
@@ -357,7 +314,30 @@ public class UserControllerTests {
         DocumentContext documentContext = JsonPath.parse(mvcResult.getResponse().getContentAsString());
         String accessToken = documentContext.read("$.accessToken");
 
-        long userId = ((Integer) tokenService.getClaims(accessToken).get("userId")).longValue();
+        long userId = ((Integer) TokenService.getClaims(accessToken).get("userId")).longValue();
         assertTrue(userId > 0, "jwt의 userId가 비정상적입니다.");
+    }
+
+    @Test
+    @DisplayName("사용자 생성 시 사용자개인정보사용기간코드 검증")
+    void createUserValidateUserPrivacyUsagePeriodCode() throws JsonProcessingException, UnsupportedEncodingException {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+        int nonValidUserPrivacyUsagePeriodCode = -100;
+        String nonValidRequestData = updateJsonValue(jsonString,
+                "$.userPrivacyUsagePeriodCode",
+                nonValidUserPrivacyUsagePeriodCode);
+
+        BadRequestDTO expectedResponse = BadRequestDTO.builder()
+                .fieldErrors(Map.of("userPrivacyUsagePeriodCode", CodeExistValidator.ERROR_MESSAGE))
+                .notFieldErrors(List.of())
+                .build();
+
+        String responseBody = assertPostRequestBadRequest("/api/v1/user", nonValidRequestData)
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        BadRequestDTO response = objectMapper.readValue(responseBody, BadRequestDTO.class);
+        assertEquals(expectedResponse, response);
     }
 }

@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CodeExistValidator implements Validator {
     private final CodeRepository codeRepository;
+    public static final String ERROR_CODE = "NotExists";
+    public static final String ERROR_MESSAGE = "유효하지 않은 코드 값입니다.";
 
     @Builder
     @Getter
@@ -49,9 +51,6 @@ public class CodeExistValidator implements Validator {
                 .collect(Collectors.groupingBy(
                         CodeCategoryNameAndCodeName::getCodeCategoryName,
                         Collectors.groupingBy(CodeCategoryNameAndCodeName::getCode)));
-
-        String ERROR_CODE = "NotExists";
-        String ERROR_MESSAGE = "유효하지 않은 코드 값입니다.";
 
         targetCodeList.forEach((targetCodeItem) -> {
             String codeCategoryName = targetCodeItem.codeItem.getCodeCategoryName();
