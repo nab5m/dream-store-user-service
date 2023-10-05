@@ -1,5 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.controller;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
@@ -7,9 +8,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.junyounggoat.dreamstore.userservice.config.EmbeddedRedisConfig;
 import com.junyounggoat.dreamstore.userservice.constant.CodeGroupName;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
-import com.junyounggoat.dreamstore.userservice.dto.BadRequestDTO;
-import com.junyounggoat.dreamstore.userservice.dto.OtherUserDTO;
-import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
+import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.entity.User;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
@@ -40,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static com.junyounggoat.dreamstore.userservice.controller.UserController.USER_NOT_FOUND_MESSAGE;
+import static com.junyounggoat.dreamstore.userservice.controller.UserController.LOGIN_USER_NOT_VALID_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
@@ -51,7 +50,6 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
@@ -101,7 +99,9 @@ public class UserControllerTests {
                 .contentType(MediaType.APPLICATION_JSON));
     }
 
-    private long createTestUser() throws Exception {
+    private record CreateUserResult(long userId, @JsonUnwrapped CreateUserRequestDTO createUserRequestDTO) { }
+
+    private CreateUserResult createTestUser() throws Exception {
         String requestData = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
 
         MvcResult mvcResult = this.mockMvc.perform(post("/api/v1/user")
@@ -109,7 +109,10 @@ public class UserControllerTests {
                 .contentType(MediaType.APPLICATION_JSON)
         ).andReturn();
 
-        return getUserIdFromTokenResponseDTO(mvcResult);
+        long userId = getUserIdFromTokenResponseDTO(mvcResult);
+        CreateUserRequestDTO createUserRequestDTO = objectMapper.readValue(requestData, CreateUserRequestDTO.class);
+
+        return new CreateUserResult(userId, createUserRequestDTO);
     }
 
 
@@ -152,11 +155,15 @@ public class UserControllerTests {
         return documentContext.jsonString();
     }
 
+    private long getUserIdFromAccessToken(String accessToken) {
+        return ((Integer) TokenService.getClaims(accessToken).get("userId")).longValue();
+    }
+
     private long getUserIdFromTokenResponseDTO(MvcResult mvcResult) throws UnsupportedEncodingException, JsonProcessingException {
         String responseBody = mvcResult.getResponse().getContentAsString(StandardCharsets.UTF_8);
         TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
 
-        return ((Integer) TokenService.getClaims(tokenResponseDTO.getAccessToken()).get("userId")).longValue();
+        return getUserIdFromAccessToken(tokenResponseDTO.getAccessToken());
     }
 
     @Test
@@ -377,14 +384,14 @@ public class UserControllerTests {
     @Test
     @DisplayName("사용자 조회 성공")
     void getOtherUserSuccess() throws Exception {
-        long userId = createTestUser();
-        User user = userRepository.findUserByUserId(userId);
+        CreateUserResult createUserResult = createTestUser();
+        User user = userRepository.findUserByUserId(createUserResult.userId());
 
         OtherUserDTO expectedResponse = OtherUserDTO.builder()
                 .user(user)
                 .build();
 
-        String responseBody = this.mockMvc.perform(get("/api/v1/user/" + userId)
+        String responseBody = this.mockMvc.perform(get("/api/v1/user/" + user.getUserId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -401,5 +408,80 @@ public class UserControllerTests {
         this.mockMvc.perform(get("/api/v1/user/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("로그인 성공")
+    void loginSuccess() throws Exception {
+        CreateUserResult createUserResult = createTestUser();
+        CreateUserRequestDTO.UserLoginCredentialsDTO userLoginCredentialsDTO = createUserResult.createUserRequestDTO.getUserLoginCredentials();
+
+        String loginUserName = userLoginCredentialsDTO.getLoginUserName();
+        String loginUserPassword = userLoginCredentialsDTO.getRawLoginUserPassword();
+
+        LoginRequestDTO loginRequestDTO = LoginRequestDTO.builder()
+                .loginUserName(loginUserName)
+                .rawLoginUserPassword(loginUserPassword)
+                .build();
+
+        String responseBody = requestPost("/api/v1/user/login", objectMapper.writeValueAsString(loginRequestDTO))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
+        assertEquals(getUserIdFromAccessToken(tokenResponseDTO.getAccessToken()), createUserResult.userId());
+    }
+
+    private void validateLoginFails(LoginRequestDTO loginRequestDTO) throws Exception {
+        String responseBody = requestPost("/api/v1/user/login", objectMapper.writeValueAsString(loginRequestDTO))
+                .andExpect(status().isBadRequest())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        BadRequestDTO response = objectMapper.readValue(responseBody, BadRequestDTO.class);
+
+        BadRequestDTO expectedResponse = BadRequestDTO.builder()
+                .fieldErrors(Map.of())
+                .notFieldErrors(List.of(LOGIN_USER_NOT_VALID_MESSAGE))
+                .build();
+
+        assertEquals(response, expectedResponse);
+    }
+    
+    @Test
+    @DisplayName("로그인 실패: 로그인사용자이름 불일치")
+    void loginFailsWhenLoginUserNameIsWrong() throws Exception {
+        CreateUserResult createUserResult = createTestUser();
+        CreateUserRequestDTO.UserLoginCredentialsDTO userLoginCredentialsDTO = createUserResult.createUserRequestDTO.getUserLoginCredentials();
+
+        String loginUserName = userLoginCredentialsDTO.getLoginUserName();
+        String loginUserPassword = userLoginCredentialsDTO.getRawLoginUserPassword();
+
+        LoginRequestDTO loginRequestDTO = LoginRequestDTO.builder()
+                .loginUserName(loginUserName + "1")
+                .rawLoginUserPassword(loginUserPassword)
+                .build();
+
+        validateLoginFails(loginRequestDTO);
+    }
+
+    @Test
+    @DisplayName("로그인 실패: 로그인사용자비밀번호 불일치")
+    void loginFailsWhenLoginUserPasswordIsWrong() throws Exception {
+        CreateUserResult createUserResult = createTestUser();
+        CreateUserRequestDTO.UserLoginCredentialsDTO userLoginCredentialsDTO = createUserResult.createUserRequestDTO.getUserLoginCredentials();
+
+        String loginUserName = userLoginCredentialsDTO.getLoginUserName();
+        String loginUserPassword = userLoginCredentialsDTO.getRawLoginUserPassword();
+
+        LoginRequestDTO loginRequestDTO = LoginRequestDTO.builder()
+                .loginUserName(loginUserName)
+                .rawLoginUserPassword(loginUserPassword + "1")
+                .build();
+
+        validateLoginFails(loginRequestDTO);
     }
 }

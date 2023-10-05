@@ -32,6 +32,7 @@ import static com.junyounggoat.dreamstore.userservice.validation.UnAuthorizedExc
 public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     public static final String USER_NOT_FOUND_MESSAGE = "존재하지 않는 사용자입니다.";
+    public static final String LOGIN_USER_NOT_VALID_MESSAGE = "아이디나 비밀번호가 일치하지 않습니다.";
 
     private final UserService userService;
     private final TokenService tokenService;
@@ -97,7 +98,7 @@ public class UserController {
         TokenResponseDTO response = userService.login(loginRequestDTO.getLoginUserName(), loginRequestDTO.getRawLoginUserPassword());
 
         if (response == null) {
-            errors.reject("IncorrectLoginUserNameOrLoginUserPassword", "아이디나 비밀번호가 일치하지 않습니다.");
+            errors.reject("IncorrectLoginUserNameOrLoginUserPassword", LOGIN_USER_NOT_VALID_MESSAGE);
             throw NotValidException.builder().errors(errors).build();
         }
 
