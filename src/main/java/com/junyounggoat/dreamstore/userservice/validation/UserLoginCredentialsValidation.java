@@ -11,7 +11,8 @@ import jakarta.validation.constraints.Size;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 public abstract class UserLoginCredentialsValidation {
@@ -36,9 +37,8 @@ public abstract class UserLoginCredentialsValidation {
         Class<? extends Payload>[] payload() default {};
     }
 
-    @Target({ FIELD })
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)
-    @NotBlank
     @Pattern(
             regexp = "^[\\w가-힣\\{\\}\\[\\]\\/?.,;:|\\)*~`!^\\-+<>@\\#$%&\\\\\\=\\(\\'\\\"]{"
                     + LOGIN_USER_NAME_MIN_LENGTH + "," + LOGIN_USER_NAME_MAX_LENGTH + "}$"
@@ -52,9 +52,21 @@ public abstract class UserLoginCredentialsValidation {
         Class<? extends Payload>[] payload() default {};
     }
 
-    @Target({ FIELD })
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)
+    @LoginUserName
     @NotBlank
+    @Constraint(validatedBy = {})
+    @ReportAsSingleViolation
+    public @interface LoginUserNameNotBlank {
+        // ToDo: 메시지 관리 파일 분리 필요
+        String message() default LOGIN_USER_NAME_MESSAGE;
+        Class<?>[] groups() default {};
+        Class<? extends Payload>[] payload() default {};
+    }
+
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
+    @Retention(RUNTIME)
     @Size(max = LOGIN_USER_PASSWORD_MAX_LENGTH)
     @Constraint(validatedBy = {})
     @ReportAsSingleViolation

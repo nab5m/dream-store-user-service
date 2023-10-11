@@ -19,6 +19,13 @@ spring:
     properties:
       hibernate:
         physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+  cloud:
+    aws:
+      credentials:
+        access-key: ${spring-cloud-aws-credentials-access-key}
+        secret-key: ${spring-cloud-aws-credentials-secret-key}
+      sqs:
+        region: ${spring-cloud-aws-sqs-region}
 ---
 spring:
   config:

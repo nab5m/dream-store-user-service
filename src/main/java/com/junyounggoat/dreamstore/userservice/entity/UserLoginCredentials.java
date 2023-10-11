@@ -26,7 +26,7 @@ public class UserLoginCredentials {
     @LoginUserName
     private String loginUserName;
 
-    @Column(nullable = false, length = LOGIN_USER_PASSWORD_MAX_LENGTH)
+    @Column(length = LOGIN_USER_PASSWORD_MAX_LENGTH)
     @LoginUserPassword
     private String loginUserPassword;
 

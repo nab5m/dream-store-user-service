@@ -14,6 +14,7 @@ java {
 
 ext {
 	snippetsDir = file("build/generated-snippets")
+	set('springCloudAwsVersion', "3.0.2")
 }
 
 configurations {
@@ -59,6 +60,14 @@ dependencies {
 	runtimeOnly('io.jsonwebtoken:jjwt-jackson:0.11.5')
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	testImplementation("it.ozimov:embedded-redis:0.7.3") { exclude group: "org.slf4j", module: "slf4j-simple" }
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs'
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-sns'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:${springCloudAwsVersion}"
+	}
 }
 
 tasks.test {

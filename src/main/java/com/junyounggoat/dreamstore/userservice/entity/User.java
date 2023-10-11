@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
@@ -31,15 +32,15 @@ public class User {
     private UserLoginBlockPeriod activeUserLoginBlockPeriod;
      */
 
-    @Column(nullable = false, length = USER_PERSON_NAME_MAX_LENGTH)
+    @Column(length = USER_PERSON_NAME_MAX_LENGTH)
     @UserPersonName
     private String userPersonName;
 
-    @Column(nullable = false, length = USER_EMAIL_ADDRESS_MAX_LENGTH)
+    @Column(length = USER_EMAIL_ADDRESS_MAX_LENGTH)
     @UserEmailAddress
     private String userEmailAddress;
 
-    @Column(nullable = false, length = USER_PHONE_NUMBER_MAX_LENGTH)
+    @Column(length = USER_PHONE_NUMBER_MAX_LENGTH)
     @UserPhoneNumber
     private String userPhoneNumber;
 
@@ -56,6 +57,8 @@ public class User {
 
     @UserBirthDate
     private LocalDate userBirthDate;
+
+    private LocalDateTime privacyExpirationCompleteDateTime;
 
     @Embedded
     private TimestampEmbeddable timestamp;

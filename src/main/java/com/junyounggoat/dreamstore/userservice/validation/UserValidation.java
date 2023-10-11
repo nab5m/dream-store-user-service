@@ -42,7 +42,6 @@ public abstract class UserValidation {
     @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)
     @Size(min = USER_PERSON_NAME_MIN_LENGTH, max = USER_PERSON_NAME_MAX_LENGTH)
-    @NotBlank
     @Constraint(validatedBy = {})
     @ReportAsSingleViolation
     public @interface UserPersonName {
@@ -53,8 +52,20 @@ public abstract class UserValidation {
 
     @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)
-    @Size(max = USER_EMAIL_ADDRESS_MAX_LENGTH)
+    @UserPersonName
     @NotBlank
+    @Constraint(validatedBy = {})
+    @ReportAsSingleViolation
+    public @interface UserPersonNameNotBlank {
+        String message() default USER_PERSON_NAME_MESSAGE;
+        Class<?>[] groups() default {};
+        Class<? extends Payload>[] payload() default {};
+    }
+
+
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
+    @Retention(RUNTIME)
+    @Size(max = USER_EMAIL_ADDRESS_MAX_LENGTH)
     @Pattern(regexp = "^[\\w._%+-]+@[\\w._-]+\\.[\\w]{2,}$")
     @Constraint(validatedBy = {})
     @ReportAsSingleViolation
@@ -66,7 +77,18 @@ public abstract class UserValidation {
 
     @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)
+    @UserEmailAddress
     @NotBlank
+    @Constraint(validatedBy = {})
+    @ReportAsSingleViolation
+    public @interface UserEmailAddressNotBlank {
+        String message() default USER_EMAIL_ADDRESS_MESSAGE;
+        Class<?>[] groups() default {};
+        Class<? extends Payload>[] payload() default {};
+    }
+
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
+    @Retention(RUNTIME)
     @Pattern(regexp = "^\\d{" + USER_PHONE_NUMBER_MIN_LENGTH +  "," + USER_PHONE_NUMBER_MAX_LENGTH + "}$")
     @Constraint(validatedBy = {})
     @ReportAsSingleViolation
@@ -75,6 +97,19 @@ public abstract class UserValidation {
         Class<?>[] groups() default {};
         Class<? extends Payload>[] payload() default {};
     }
+
+    @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
+    @Retention(RUNTIME)
+    @UserPhoneNumber
+    @NotBlank
+    @Constraint(validatedBy = {})
+    @ReportAsSingleViolation
+    public @interface UserPhoneNumberNotBlank {
+        String message() default USER_PHONE_NUMBER_MESSAGE;
+        Class<?>[] groups() default {};
+        Class<? extends Payload>[] payload() default {};
+    }
+
 
     @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })
     @Retention(RUNTIME)

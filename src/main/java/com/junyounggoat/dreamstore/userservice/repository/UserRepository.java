@@ -1,11 +1,13 @@
 package com.junyounggoat.dreamstore.userservice.repository;
 
+import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.entity.*;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
@@ -63,7 +65,8 @@ public class UserRepository {
                 .user(user)
                 .userPrivacyUsagePeriodCode(userPrivacyUsagePeriodCode)
                 .usageStartDateTime(LocalDateTime.now())
-                .build();
+                .build()
+                .withUsageEndDateTime();
 
         entityManager.persist(entity);
 
@@ -119,6 +122,20 @@ public class UserRepository {
         return updated;
     }
 
+    public UserPrivacyUsagePeriod updateUserPrivacyPeriod(UserPrivacyUsagePeriod userPrivacyUsagePeriod) {
+        UserPrivacyUsagePeriod updated = userPrivacyUsagePeriod.withUsageEndDateTime();
+        entityManager.merge(updated);
+
+        return updated;
+    }
+
+    public UserLoginCredentials updateUserLoginCredentials(UserLoginCredentials userLoginCredentials) {
+        UserLoginCredentials updated = userLoginCredentials.toBuilder().build();
+        entityManager.merge(updated);
+
+        return updated;
+    }
+
     public @Nullable UserPrivacyUsagePeriod findUserPrivacyUsagePeriodByUserId(Long userId) {
         return queryFactory.selectFrom(qUserPrivacyUsagePeriod)
                 .innerJoin(qUserPrivacyUsagePeriod.user, qUser)
@@ -128,16 +145,44 @@ public class UserRepository {
                 .fetchOne();
     }
 
-    public UserPrivacyUsagePeriod updateUserPrivacyPeriod(UserPrivacyUsagePeriod userPrivacyUsagePeriod) {
-        UserPrivacyUsagePeriod updated = userPrivacyUsagePeriod.toBuilder().build();
-        entityManager.merge(updated);
-
-        return updated;
-    }
-
     public @Nullable User findUserByUserNickname(String userNickname) {
         return queryFactory.selectFrom(qUser)
                 .where(qUser.userNickname.eq(userNickname)
+                        .and(qUserIsNotDeleted))
+                .fetchOne();
+    }
+
+    public List<Long> findPrivacyExpiredUser() {
+        return queryFactory.selectFrom(qUserPrivacyUsagePeriod)
+                .select(qUser.userId)
+                .innerJoin(qUserPrivacyUsagePeriod.user)
+                .where(qUserPrivacyUsagePeriod.usageEndDateTime.before(LocalDateTime.now())
+                        .and(qUser.privacyExpirationCompleteDateTime.isNull()))
+                .fetch();
+    }
+
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    public static class UserPrivacy {
+        private User user;
+        @Nullable
+        private UserLoginCredentials userLoginCredentials;
+    }
+
+    public UserPrivacy getUserPrivacy(Long userId) {
+        return queryFactory.selectFrom(qUser)
+                .select(Projections.fields(UserPrivacy.class, qUser.as("user"),
+                        qUserLoginCredentials.as("userLoginCredentials")))
+                .leftJoin(qUserLoginCategory)
+                .on(qUser.userId.eq(qUserLoginCategory.user.userId)
+                        .and(qUserLoginCategory.userLoginCategoryCode.eq(UserLoginCategoryCode.userLoginCredentials.getCode()))
+                        .and(qUserLoginCategoryIsNotDeleted))
+                .leftJoin(qUserLoginCredentials)
+                .on(qUserLoginCategory.userLoginCategoryId.eq(qUserLoginCredentials.userLoginCategory.userLoginCategoryId)
+                        .and(qUserLoginCredentialsIsNotDeleted))
+                .where(qUser.userId.eq(userId)
                         .and(qUserIsNotDeleted))
                 .fetchOne();
     }

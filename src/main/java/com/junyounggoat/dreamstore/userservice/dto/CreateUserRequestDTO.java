@@ -33,13 +33,13 @@ public class CreateUserRequestDTO {
     @Builder
     @Getter
     public static class UserDTO {
-        @UserValidation.UserPersonName
+        @UserValidation.UserPersonNameNotBlank
         private String userPersonName;
 
-        @UserValidation.UserEmailAddress
+        @UserValidation.UserEmailAddressNotBlank
         private String userEmailAddress;
 
-        @UserValidation.UserPhoneNumber
+        @UserValidation.UserPhoneNumberNotBlank
         private String userPhoneNumber;
 
         public User.UserBuilder toUserBuilder() {
@@ -53,7 +53,7 @@ public class CreateUserRequestDTO {
     @Builder
     @Getter
     public static class UserLoginCredentialsDTO {
-        @UserLoginCredentialsValidation.LoginUserName
+        @UserLoginCredentialsValidation.LoginUserNameNotBlank
         private String loginUserName;
 
         @UserLoginCredentialsValidation.RawLoginUserPassword

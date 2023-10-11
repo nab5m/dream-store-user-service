@@ -38,19 +38,31 @@ public class UserPrivacyUsagePeriod {
     @NotNull
     private LocalDateTime usageStartDateTime;
 
+    @Column(nullable = false)
+    @NotNull
+    private LocalDateTime usageEndDateTime;
+
     @Embedded
     @JsonUnwrapped
     private TimestampEmbeddable timestamp;
 
-    private LocalDateTime getUsageEndDateTime(int userPrivacyUsagePeriodCode) {
+    public UserPrivacyUsagePeriod withUsageEndDateTime() {
+        LocalDateTime usageEndDateTime = null;
+
         if (userPrivacyUsagePeriodCode == UserPrivacyUsagePeriodCode.FOREVER.getCode()) {
-            return DateTimeConstants.DB_MAX_DATETIME;
-        } else if (userPrivacyUsagePeriodCode >= DateTimeConstants.ONE_YEAR_SECONDS) {
-            return this.usageStartDateTime.plusYears(userPrivacyUsagePeriodCode / DateTimeConstants.ONE_YEAR_SECONDS);
-        } else if (userPrivacyUsagePeriodCode >= DateTimeConstants.ONE_MONTH_SECONDS) {
-            return this.usageStartDateTime.plusMonths(userPrivacyUsagePeriodCode / DateTimeConstants.ONE_MONTH_SECONDS);
+            usageEndDateTime = DateTimeConstants.DB_MAX_DATETIME;
+        } else if (userPrivacyUsagePeriodCode == UserPrivacyUsagePeriodCode.ONE_YEAR.getCode()) {
+            usageEndDateTime = this.usageStartDateTime.plusYears(1);
+        } else if (userPrivacyUsagePeriodCode >= UserPrivacyUsagePeriodCode.THREE_YEAR.getCode()) {
+            usageEndDateTime = this.usageStartDateTime.plusYears(3);
+        } else if (userPrivacyUsagePeriodCode >= UserPrivacyUsagePeriodCode.FIVE_YEAR.getCode()) {
+            usageEndDateTime = this.usageStartDateTime.plusYears(5);
         } else {
-            return this.usageStartDateTime.plusSeconds(userPrivacyUsagePeriodCode / DateTimeConstants.ONE_MONTH_SECONDS);
+            usageEndDateTime = this.usageStartDateTime.plusSeconds(userPrivacyUsagePeriodCode);
         }
+
+        return this.toBuilder()
+                .usageEndDateTime(usageEndDateTime)
+                .build();
     }
 }

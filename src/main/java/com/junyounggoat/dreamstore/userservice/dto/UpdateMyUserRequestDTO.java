@@ -10,13 +10,13 @@ import java.time.LocalDate;
 @Builder
 @Getter
 public class UpdateMyUserRequestDTO {
-    @UserValidation.UserPersonName
+    @UserValidation.UserPersonNameNotBlank
     private final String userPersonName;
 
-    @UserValidation.UserEmailAddress
+    @UserValidation.UserEmailAddressNotBlank
     private final String userEmailAddress;
 
-    @UserValidation.UserPhoneNumber
+    @UserValidation.UserPhoneNumberNotBlank
     private final String userPhoneNumber;
 
     @UserValidation.UserNickname

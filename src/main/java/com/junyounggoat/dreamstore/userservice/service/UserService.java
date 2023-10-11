@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserService {
     private final TokenService tokenService;
+    private final SendEventService sendEventService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
@@ -142,5 +145,79 @@ public class UserService {
         return UpdateMyUserResponseDTO.builder()
                 .user(updatedUser)
                 .build();
+    }
+
+    public List<Long> findPrivacyExpiredUser() {
+        return userRepository.findPrivacyExpiredUser();
+    }
+
+    private UserRepository.UserPrivacy getUserPrivacy(Long userId) {
+        return userRepository.getUserPrivacy(userId);
+    }
+
+    private void deleteUserPrivacyInUserEntity(User user) {
+        User privacyDeletedUser = user.toBuilder()
+                .userPersonName(null)
+                .userEmailAddress(null)
+                .userPhoneNumber(null)
+                .userGenderCode(null)
+                .userBirthDate(null)
+                .privacyExpirationCompleteDateTime(LocalDateTime.now())
+                .build();
+
+        userRepository.updateUser(privacyDeletedUser);
+    }
+
+    private void deleteUserPrivacyInUserLoginCredentialsEntity(UserLoginCredentials userLoginCredentials) {
+        UserLoginCredentials privacyDeletedUserLoginCredentials = userLoginCredentials.toBuilder()
+                .loginUserName(null)
+                .loginUserPassword(null)
+                .build();
+
+        userRepository.updateUserLoginCredentials(privacyDeletedUserLoginCredentials);
+    }
+
+    private void deleteUserPrivacy(UserRepository.UserPrivacy userPrivacy) {
+        deleteUserPrivacyInUserEntity(userPrivacy.getUser());
+
+        UserLoginCredentials userLoginCredentials = userPrivacy.getUserLoginCredentials();
+        if (userLoginCredentials != null) {
+            deleteUserPrivacyInUserLoginCredentialsEntity(userLoginCredentials);
+        }
+    }
+
+    private BackupExpiredUserPrivacyEventDTO getBackupExpiredUserPrivacyEventDTOFromUserPrivacy(UserRepository.UserPrivacy userPrivacy) {
+        BackupExpiredUserPrivacyEventDTO.ExpiredUserPrivacy.UserLoginCredentials backupUserLoginCredentials = null;
+        if (userPrivacy.getUserLoginCredentials() != null) {
+            backupUserLoginCredentials = BackupExpiredUserPrivacyEventDTO.ExpiredUserPrivacy.UserLoginCredentials.builder()
+                    .loginUserName(userPrivacy.getUserLoginCredentials().getLoginUserName())
+                    .build();
+        }
+
+        return BackupExpiredUserPrivacyEventDTO
+                .builder()
+                .expiredUserPrivacy(BackupExpiredUserPrivacyEventDTO.ExpiredUserPrivacy.builder()
+                        .userId(userPrivacy.getUser().getUserId())
+                        .user(BackupExpiredUserPrivacyEventDTO.ExpiredUserPrivacy.User.builder()
+                                .userPersonName(userPrivacy.getUser().getUserPersonName())
+                                .build())
+                        .userLoginCredentials(backupUserLoginCredentials)
+                        .creationDateTime(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
+                        .build())
+                .build();
+    }
+
+    public void expireUserPrivacy(Long userId) {
+        UserRepository.UserPrivacy userPrivacy = getUserPrivacy(userId);
+        if (userPrivacy == null || userPrivacy.getUser() == null) {
+            return;
+        }
+
+        BackupExpiredUserPrivacyEventDTO backupExpiredUserPrivacyEventDTO =
+                getBackupExpiredUserPrivacyEventDTOFromUserPrivacy(userPrivacy);
+
+        deleteUserPrivacy(userPrivacy);
+
+        sendEventService.sendEventBackupExpiredUserPrivacy(backupExpiredUserPrivacyEventDTO);
     }
 }
