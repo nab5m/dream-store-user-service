@@ -1,5 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.repository;
 
+import static com.junyounggoat.dreamstore.userservice.entity.UserPrivacyUsagePeriodTests.createTestUserPrivacyUsagePeriod;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.junyounggoat.dreamstore.userservice.constant.UserPrivacyUsagePeriodCode;
@@ -28,45 +29,41 @@ public class UserRepositoryTests {
     @Test
     @DisplayName("개인정보사용기간이 만료된 사용자 찾기")
     public void findPrivacyExpiredUser() {
+        // given
         // 개인정보사용기간이 지나지 않은 사용자
-        User privacyNotExpiredUser = userRepository.insertUser(User.builder()
-                .userNonmemberFlag(true)
-                .build());
-
-        entityManager.persist(UserPrivacyUsagePeriod.builder()
-                .user(privacyNotExpiredUser)
-                .usageStartDateTime(LocalDateTime.now())
-                .userPrivacyUsagePeriodCode(UserPrivacyUsagePeriodCode.FOREVER.getCode())
-                .build()
-                .withUsageEndDateTime());
+        UserPrivacyUsagePeriod privacyNotExpiredUser = createTestUserPrivacyUsagePeriod(entityManager);
 
         // 개인정보사용기간이 지났고 아직 만료 처리가 되지 않은 사용자
-        User privacyExpiredAndNeedsRemove = userRepository.insertUser(User.builder()
-                .userNonmemberFlag(true)
-                .build());
-
-        entityManager.persist(UserPrivacyUsagePeriod.builder()
-                .user(privacyExpiredAndNeedsRemove)
-                .usageStartDateTime(LocalDateTime.now().minusYears(10))
-                .userPrivacyUsagePeriodCode(UserPrivacyUsagePeriodCode.ONE_YEAR.getCode())
-                .build()
-                .withUsageEndDateTime());
+        UserPrivacyUsagePeriod privacyExpiredAndNeedsRemove =
+                createTestUserPrivacyUsagePeriod(entityManager).toBuilder()
+                        .usageStartDateTime(LocalDateTime.now().minusYears(10))
+                        .userPrivacyUsagePeriodCode(UserPrivacyUsagePeriodCode.ONE_YEAR.getCode())
+                        .build()
+                        .withUsageEndDateTime();
+        entityManager.merge(privacyExpiredAndNeedsRemove);
 
         // 개인정보사용기간이 지났지만 만료 처리가 완료된 사용자
-        User privacyExpiredAndRemoved = userRepository.insertUser(User.builder()
-                .userNonmemberFlag(true)
+        UserPrivacyUsagePeriod privacyExpiredAndRemoved =
+                createTestUserPrivacyUsagePeriod(entityManager).toBuilder()
+                        .usageStartDateTime(LocalDateTime.now().minusYears(10))
+                        .userPrivacyUsagePeriodCode(UserPrivacyUsagePeriodCode.ONE_YEAR.getCode())
+                        .build()
+                        .withUsageEndDateTime();
+        User privacyExpiredAndRemovedUser = privacyExpiredAndRemoved.getUser().toBuilder()
                 .privacyExpirationCompleteDateTime(LocalDateTime.now())
-                .build());
+                .build();
 
-        entityManager.persist(UserPrivacyUsagePeriod.builder()
-                .user(privacyExpiredAndRemoved)
-                .usageStartDateTime(LocalDateTime.now().minusYears(10))
-                .userPrivacyUsagePeriodCode(UserPrivacyUsagePeriodCode.ONE_YEAR.getCode())
-                .build()
-                .withUsageEndDateTime());
+        privacyExpiredAndRemoved = privacyExpiredAndRemoved.toBuilder()
+                .user(privacyExpiredAndRemovedUser)
+                .build();
 
+        entityManager.merge(privacyExpiredAndRemovedUser);
+        entityManager.merge(privacyExpiredAndRemoved);
+
+        // when
         List<Long> userIdList = userRepository.findPrivacyExpiredUser();
 
-        assertEquals(userIdList, List.of(privacyExpiredAndNeedsRemove.getUserId()));
+        // then
+        assertEquals(userIdList, List.of(privacyExpiredAndNeedsRemove.getUser().getUserId()));
     }
 }
