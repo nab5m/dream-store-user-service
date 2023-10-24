@@ -1,7 +1,5 @@
 package com.junyounggoat.dreamstore.userservice.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.entity.User;
 import com.junyounggoat.dreamstore.userservice.entity.UserLoginCredentials;
 import com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation;
@@ -15,10 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
 
 // ToDo: 문서화 어노테이션 매핑을 DTO에 적용하는 건 어떨까?
+@Builder
 @Getter
 public class CreateUserRequestDTO {
-    private final int userLoginCategoryCode = UserLoginCategoryCode.userLoginCredentials.getCode();
-
     @Valid
     @NotNull
     private UserDTO user;
@@ -32,8 +29,6 @@ public class CreateUserRequestDTO {
 
     @NotNull
     private Integer userPrivacyUsagePeriodCode;
-
-    private KakaoUserDTO kakaoUser;
 
     @Builder
     @Getter
@@ -69,11 +64,5 @@ public class CreateUserRequestDTO {
                     .loginUserName(loginUserName)
                     .loginUserPassword(passwordEncoder.encode(rawLoginUserPassword));
         }
-    }
-
-    @Builder
-    @Getter
-    public static class KakaoUserDTO {
-        private long kakaoId;
     }
 }
