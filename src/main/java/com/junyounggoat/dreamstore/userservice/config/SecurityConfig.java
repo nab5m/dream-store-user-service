@@ -30,7 +30,7 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    @Value("${spring.h2.console.enabled}")
+    @Value("${spring.h2.console.enabled:false}")
     private boolean h2ConsoleEnabled;
 
     @Bean
@@ -59,6 +59,7 @@ public class SecurityConfig {
                             RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/v1/user/(\\d)+$"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user/login"),
+                            builder.pattern(HttpMethod.POST, "/api/v1/user/login/kakao"),
                             builder.pattern(HttpMethod.POST, "/api/v1/token/refresh"),
                             builder.pattern(HttpMethod.DELETE, "/api/v1/token")
                     ).permitAll()

@@ -26,6 +26,9 @@ spring:
         secret-key: ${spring-cloud-aws-credentials-secret-key}
       sqs:
         region: ${spring-cloud-aws-sqs-region}
+kakao:
+  rest-api-key: ${kakao-rest-api-key:}
+  login-redirect-uri: ${kakao-login-redirect-uri:}
 ---
 spring:
   config:

@@ -17,6 +17,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import static com.junyounggoat.dreamstore.userservice.service.KakaoLoginService.REQUEST_KAKAO_PROFILE_FAILED_MESSAGE;
+import static com.junyounggoat.dreamstore.userservice.service.KakaoLoginService.REQUEST_KAKAO_TOKEN_FAILED_MESSAGE;
+
 public abstract class UserControllerDocs {
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
@@ -132,4 +135,26 @@ public abstract class UserControllerDocs {
                     content = @Content(schema = @Schema(example = UserController.USER_NOT_FOUND_MESSAGE)))
     })
     public @interface UpdateMyUserDocs { }
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "카카오 로그인")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그인 성공 및 accessToken 발급",
+                    content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "승인코드 미입력",
+                    content = @Content(schema = @Schema(example = "{\n" +
+                            "  \"fieldErrors\": {\n" +
+                            "    \"authorizationCode\": \"공백일 수 없습니다\"\n" +
+                            "  },\n" +
+                            "  \"notFieldErrors\": []\n" +
+                            "}"))),
+            @ApiResponse(responseCode = "400 ", description = "카카오 엑세스 토큰 조회 실패",
+                    content = @Content(schema = @Schema(example = REQUEST_KAKAO_TOKEN_FAILED_MESSAGE))),
+            @ApiResponse(responseCode = "400  ", description = "카카오 프로필 조회 실패",
+                    content = @Content(schema = @Schema(example = REQUEST_KAKAO_PROFILE_FAILED_MESSAGE))),
+            @ApiResponse(responseCode = "404", description = "미가입 사용자",
+                    content = @Content(schema = @Schema(description = "kakaoId: Long, 회원가입 시 사용", implementation = Long.class)))
+    })
+    public @interface KakaoLoginDocs { }
 }

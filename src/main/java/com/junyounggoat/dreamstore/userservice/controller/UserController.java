@@ -2,11 +2,11 @@ package com.junyounggoat.dreamstore.userservice.controller;
 
 import com.junyounggoat.dreamstore.userservice.constant.CodeCategoryName;
 import com.junyounggoat.dreamstore.userservice.dto.*;
+import com.junyounggoat.dreamstore.userservice.service.KakaoLoginService;
 import com.junyounggoat.dreamstore.userservice.validation.*;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
 import com.junyounggoat.dreamstore.userservice.swagger.UserControllerDocs;
-import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class UserController {
     public static final String LOGIN_USER_NOT_VALID_MESSAGE = "아이디나 비밀번호가 일치하지 않습니다.";
 
     private final UserService userService;
-    private final TokenService tokenService;
+    private final KakaoLoginService kakaoLoginService;
     private final UniqueColumnValidator uniqueColumnValidator;
     private final RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
     private final CodeExistValidator codeExistValidator;
@@ -194,5 +194,13 @@ public class UserController {
         }
 
         return updateMyUserResponseDTO;
+    }
+
+    @PostMapping("/login/kakao")
+    @UserControllerDocs.KakaoLoginDocs
+    public TokenResponseDTO kakaoLogin(@RequestBody @Valid KakaoLoginRequestDTO kakaoLoginRequestDTO, Errors errors) {
+        NotValidException.throwIfErrorExists(errors);
+
+        return kakaoLoginService.loginKakaoUser(kakaoLoginRequestDTO.getAuthorizationCode());
     }
 }

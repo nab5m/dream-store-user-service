@@ -10,5 +10,6 @@ public abstract class DateTimeConstants {
             LocalTime.of(23, 59, 59)
     );
 
-    public static final int REFRESH_TOKEN_VALID_SECONDS = 10 * 24 * 60 * 60;   // 10일
+    public static final int ONE_DAY_SECONDS = 24 * 60 * 60;
+    public static final int REFRESH_TOKEN_VALID_SECONDS = 10 * ONE_DAY_SECONDS;   // 10일
 }

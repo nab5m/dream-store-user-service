@@ -25,11 +25,13 @@ public class UserRepository {
     private final QUserLoginCategory qUserLoginCategory = QUserLoginCategory.userLoginCategory;
     private final QUserLoginCredentials qUserLoginCredentials = QUserLoginCredentials.userLoginCredentials;
     private final QUserPrivacyUsagePeriod qUserPrivacyUsagePeriod = QUserPrivacyUsagePeriod.userPrivacyUsagePeriod;
+    private final QKakaoUser qKakaoUser = QKakaoUser.kakaoUser;
 
     private final BooleanExpression qUserIsNotDeleted = qUser.timestamp.deletionDateTime.isNull();
     private final BooleanExpression qUserLoginCategoryIsNotDeleted = qUserLoginCategory.deletionDateTime.isNull();
     private final BooleanExpression qUserLoginCredentialsIsNotDeleted = qUserLoginCredentials.timestamp.deletionDateTime.isNull();
     private final BooleanExpression qUserPrivacyUsagePeriodIsNotDeleted = qUserPrivacyUsagePeriod.timestamp.deletionDateTime.isNull();
+    private final BooleanExpression qKakaoUserIsNotDeleted = qKakaoUser.timestamp.deletionDateTime.isNull();
 
     public User insertUser(User user) {
         User created = user.toBuilder().build();
@@ -183,6 +185,18 @@ public class UserRepository {
                 .on(qUserLoginCategory.userLoginCategoryId.eq(qUserLoginCredentials.userLoginCategory.userLoginCategoryId)
                         .and(qUserLoginCredentialsIsNotDeleted))
                 .where(qUser.userId.eq(userId)
+                        .and(qUserIsNotDeleted))
+                .fetchOne();
+    }
+
+    public User findUserByKakaoId(Long kakaoId) {
+        return queryFactory.selectFrom(qKakaoUser)
+                .select(qUser)
+                .innerJoin(qKakaoUser.userLoginCategory, qUserLoginCategory)
+                .innerJoin(qUserLoginCategory.user, qUser)
+                .where(qKakaoUser.kakaoId.eq(kakaoId)
+                        .and(qKakaoUserIsNotDeleted)
+                        .and(qUserLoginCategoryIsNotDeleted)
                         .and(qUserIsNotDeleted))
                 .fetchOne();
     }

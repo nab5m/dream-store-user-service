@@ -220,4 +220,9 @@ public class UserService {
 
         sendEventService.sendEventBackupExpiredUserPrivacy(backupExpiredUserPrivacyEventDTO);
     }
+
+    @Transactional(readOnly = true)
+    public @Nullable User findUserByKakaoId(Long kakaoId) {
+        return userRepository.findUserByKakaoId(kakaoId);
+    }
 }
