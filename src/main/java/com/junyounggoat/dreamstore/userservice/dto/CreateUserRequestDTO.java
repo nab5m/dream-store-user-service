@@ -18,37 +18,17 @@ import java.util.List;
 public class CreateUserRequestDTO {
     @Valid
     @NotNull
-    private UserDTO user;
+    private UserLoginCredentialsDTO userLoginCredentials;
 
     @Valid
     @NotNull
-    private UserLoginCredentialsDTO userLoginCredentials;
+    private CreateUserDTO user;
 
     @NotEmpty
     private List<Integer> userAgreementItemCodeList;
 
     @NotNull
     private Integer userPrivacyUsagePeriodCode;
-
-    @Builder
-    @Getter
-    public static class UserDTO {
-        @UserValidation.UserPersonNameNotBlank
-        private String userPersonName;
-
-        @UserValidation.UserEmailAddressNotBlank
-        private String userEmailAddress;
-
-        @UserValidation.UserPhoneNumberNotBlank
-        private String userPhoneNumber;
-
-        public User.UserBuilder toUserBuilder() {
-            return User.builder()
-                    .userPersonName(userPersonName)
-                    .userEmailAddress(userEmailAddress)
-                    .userPhoneNumber(userPhoneNumber);
-        }
-    }
 
     @Builder
     @Getter
