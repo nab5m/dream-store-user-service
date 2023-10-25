@@ -7,7 +7,7 @@ import org.springframework.data.redis.core.RedisHash;
 
 import static com.junyounggoat.dreamstore.userservice.constant.DateTimeConstants.REFRESH_TOKEN_VALID_SECONDS;
 
-@RedisHash(value = "refreshToken", timeToLive = REFRESH_TOKEN_VALID_SECONDS)
+@RedisHash(value = "refreshToken")
 @Builder
 @Getter
 public class RefreshToken {

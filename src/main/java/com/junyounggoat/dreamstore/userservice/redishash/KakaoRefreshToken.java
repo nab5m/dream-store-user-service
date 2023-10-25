@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.redis.core.RedisHash;
 
-import static com.junyounggoat.dreamstore.userservice.constant.DateTimeConstants.ONE_DAY_SECONDS;
-
-@RedisHash(value = "kakaoRefreshToken", timeToLive = ONE_DAY_SECONDS)
+@RedisHash(value = "kakaoRefreshToken")
 @Builder
 @Getter
 public class KakaoRefreshToken {

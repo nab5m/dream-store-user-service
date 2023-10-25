@@ -8,13 +8,17 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+
 @Repository
 @RequiredArgsConstructor
 public class KakaoRefreshTokenRepository {
     private final StringRedisTemplate redisTemplate;
 
     public void saveKakaoRefreshToken(final KakaoRefreshToken kakaoRefreshToken) {
-        redisTemplate.opsForValue().set(Long.valueOf(kakaoRefreshToken.getKakaoId()).toString(), kakaoRefreshToken.getKakaoRefreshToken());
+        String key = Long.valueOf(kakaoRefreshToken.getKakaoId()).toString();
+        redisTemplate.opsForValue().set(key, kakaoRefreshToken.getKakaoRefreshToken());
+        redisTemplate.expire(key, Duration.ofDays(1L));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
