@@ -1,9 +1,7 @@
 package com.junyounggoat.dreamstore.userservice.dto;
 
-import com.junyounggoat.dreamstore.userservice.entity.User;
 import com.junyounggoat.dreamstore.userservice.entity.UserLoginCredentials;
 import com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation;
-import com.junyounggoat.dreamstore.userservice.validation.UserValidation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -15,7 +13,7 @@ import java.util.List;
 // ToDo: 문서화 어노테이션 매핑을 DTO에 적용하는 건 어떨까?
 @Builder
 @Getter
-public class CreateUserRequestDTO {
+public class CreateUserRequestDTO implements NewMemberCommonFields {
     @Valid
     @NotNull
     private UserLoginCredentialsDTO userLoginCredentials;

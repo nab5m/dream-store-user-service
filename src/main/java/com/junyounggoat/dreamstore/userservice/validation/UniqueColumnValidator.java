@@ -42,6 +42,7 @@ public class UniqueColumnValidator implements Validator {
             case UserPhoneNumber -> validateUniqueUserPhoneNumber(target, errors);
             case LoginUserName -> validateUniqueLoginUserName(target, errors);
             case UserNickname -> validateUniqueUserNickname(target, errors);
+            case KakaoId -> validateUniqueKakaoId(target, errors);
             default -> throw new RuntimeException("UniqueColumnValidator - Not Supported Column.");
         }
     }
@@ -88,6 +89,18 @@ public class UniqueColumnValidator implements Validator {
         Long excludingRowId = target.getExcludingRowId();
         if (user != null && (excludingRowId == null || !excludingRowId.equals(user.getUserId()))) {
             String ERROR_MESSAGE = "이미 사용 중인 닉네임입니다.";
+            try {
+                errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
+            } catch (NotReadablePropertyException exception) {
+                errors.reject(ERROR_CODE, ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void validateUniqueKakaoId(Target target, Errors errors) {
+        User user = userRepository.findUserByKakaoId((Long) target.getValue());
+        if (user != null) {
+            String ERROR_MESSAGE = "이미 가입한 카카오 사용자입니다.";
             try {
                 errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
@@ -151,6 +164,18 @@ public class UniqueColumnValidator implements Validator {
                         .uniqueColumn(UniqueColumn.UserNickname)
                         .value(userNickname)
                         .excludingRowId(excludingRowId)
+                        .build(),
+                errors
+        );
+    }
+
+    public static void validateUniqueKakaoId(UniqueColumnValidator uniqueColumnValidator, String field,
+                                             Long kakaoId, Errors errors) {
+        uniqueColumnValidator.validate(
+                Target.builder()
+                        .field(field)
+                        .uniqueColumn(UniqueColumn.KakaoId)
+                        .value(kakaoId)
                         .build(),
                 errors
         );

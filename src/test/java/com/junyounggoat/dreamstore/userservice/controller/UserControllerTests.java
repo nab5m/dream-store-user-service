@@ -9,19 +9,29 @@ import com.junyounggoat.dreamstore.userservice.config.EmbeddedRedisConfig;
 import com.junyounggoat.dreamstore.userservice.constant.CodeGroupName;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.*;
+import com.junyounggoat.dreamstore.userservice.entity.KakaoUser;
 import com.junyounggoat.dreamstore.userservice.entity.User;
+import com.junyounggoat.dreamstore.userservice.entity.UserLoginCategory;
+import com.junyounggoat.dreamstore.userservice.redishash.KakaoRefreshToken;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository;
+import com.junyounggoat.dreamstore.userservice.repository.KakaoRefreshTokenRepository;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
+import com.junyounggoat.dreamstore.userservice.service.KakaoLoginService;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Spy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
@@ -35,16 +45,21 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.junyounggoat.dreamstore.userservice.controller.UserController.LOGIN_USER_NOT_VALID_MESSAGE;
+import static com.junyounggoat.dreamstore.userservice.entity.KakaoUserTests.createTestkakaoUser;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
@@ -58,12 +73,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ EmbeddedRedisConfig.class })
 public class UserControllerTests {
     private MockMvc mockMvc;
+    @PersistenceContext
+    private EntityManager entityManager;
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
     private CodeRepository codeRepository;
     @Autowired
     private UserRepository userRepository;
+    @SpyBean
+    private KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
+    @SpyBean
+    private KakaoLoginService kakaoLoginService;
 
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
@@ -78,6 +99,16 @@ public class UserControllerTests {
                     "        \"loginUserName\": \"테스터1\",\n" +
                     "        \"rawLoginUserPassword\": \"tester123%!!\"\n" +
                     "    },\n" +
+                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
+                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
+                    "}",
+            UserLoginCategoryCode.kakaoUser, "{\n" +
+                    "    \"user\": {\n" +
+                    "        \"userPersonName\": \"테스터\",\n" +
+                    "        \"userEmailAddress\": \"tester2@example.com\",\n" +
+                    "        \"userPhoneNumber\": \"01000000002\"\n" +
+                    "    },\n" +
+                    "    \"kakaoId\": 1,\n" +
                     "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
                     "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
                     "}"
@@ -166,10 +197,7 @@ public class UserControllerTests {
         return getUserIdFromAccessToken(tokenResponseDTO.getAccessToken());
     }
 
-    @Test
-    @DisplayName("사용자 생성 시 필수 값 검증")
-    void createUserValidateRequiredFields() {
-        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+    private void validateCreateMemberCommonFields(String jsonString, String endPoint) {
         Map<String, Object> requiredFieldsBlankValueMap = Map.of(
                 "$.user.userPersonName", "",
                 "$.user.userEmailAddress", "",
@@ -194,7 +222,50 @@ public class UserControllerTests {
                 .stream().map(removeKey -> removeJsonKey(jsonString, removeKey)).toList();
 
         Stream.concat(requestDataByUpdatingKeys.stream(), requestDataByRemovingKeys.stream())
-                .forEach((requestData) -> assertPostRequestBadRequest("/api/v1/user", requestData));
+                .forEach((requestData) -> assertPostRequestBadRequest(endPoint, requestData));
+    }
+
+    private void validateDuplatedUserFields(String jsonString, String endPoint, Map<String, Object> notDuplicatedValuesParam) {
+        assertPostRequestCreated(endPoint, jsonString);
+
+        Map<String, Object> notDuplicatedValues = Map.of(
+                "$.user.userEmailAddress", "new_tester@example.com",
+                "$.user.userPhoneNumber", "01099999999"
+        );
+        notDuplicatedValues = Stream.concat(notDuplicatedValues.entrySet().stream(), notDuplicatedValuesParam.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        List<Map.Entry<String, Object>> notDuplicatedValueEntries = notDuplicatedValues.entrySet().stream().toList();
+
+        // 하나의 필드만 중복된 상태로 요청
+        for (int excludingIdx = 0; excludingIdx < notDuplicatedValueEntries.size(); excludingIdx++) {
+            String requestData = jsonString;
+            for (int currentIdx = 0; currentIdx  < notDuplicatedValueEntries.size(); currentIdx++) {
+                if (excludingIdx == currentIdx) {
+                    continue;
+                }
+
+                Map.Entry<String, Object> jsonKeyValue = notDuplicatedValueEntries.get(currentIdx);
+                requestData = updateJsonValue(requestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
+            }
+
+            assertPostRequestBadRequest(endPoint, jsonString);
+        }
+
+        // 모든 필드를 중복 제거 후 요청
+        String notDuplicatedUserRequestData = jsonString;
+        for (int currentIdx = 0; currentIdx < notDuplicatedValueEntries.size(); currentIdx++) {
+            Map.Entry<String, Object> jsonKeyValue = notDuplicatedValueEntries.get(currentIdx);
+            notDuplicatedUserRequestData = updateJsonValue(notDuplicatedUserRequestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
+        }
+        assertPostRequestCreated(endPoint, notDuplicatedUserRequestData);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 시 필수 값 검증")
+    void createUserValidateRequiredFields() {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
+        validateCreateMemberCommonFields(jsonString, "/api/v1/user");
     }
 
     @Test
@@ -228,37 +299,9 @@ public class UserControllerTests {
     @DisplayName("사용자 생성 시 중복된 사용자 검증")
     void createUserValidateDuplicatedUser() throws Exception {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
-        assertPostRequestCreated("/api/v1/user", jsonString);
-
-        Map<String, String> notDuplicatedUserValues = Map.of(
-                "$.user.userEmailAddress", "new_tester@example.com",
-                "$.user.userPhoneNumber", "01000000002",
+        validateDuplatedUserFields(jsonString, "/api/v1/user", Map.of(
                 "$.userLoginCredentials.loginUserName", "new_tester"
-        );
-        List<Map.Entry<String, String>> notDuplicatedUserValueEntries = notDuplicatedUserValues.entrySet().stream().toList();
-
-        // 하나의 필드만 중복된 상태로 요청
-        for (int excludingIdx = 0; excludingIdx < notDuplicatedUserValueEntries.size(); excludingIdx++) {
-            String requestData = jsonString;
-            for (int currentIdx = 0; currentIdx  < notDuplicatedUserValueEntries.size(); currentIdx++) {
-                if (excludingIdx == currentIdx) {
-                    continue;
-                }
-
-                Map.Entry<String, String> jsonKeyValue = notDuplicatedUserValueEntries.get(currentIdx);
-                requestData = updateJsonValue(requestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
-            }
-
-            assertPostRequestBadRequest("/api/v1/user", jsonString);
-        }
-
-        // 모든 필드를 중복 제거 후 요청
-        String notDuplicatedUserRequestData = jsonString;
-        for (int currentIdx = 0; currentIdx < notDuplicatedUserValueEntries.size(); currentIdx++) {
-            Map.Entry<String, String> jsonKeyValue = notDuplicatedUserValueEntries.get(currentIdx);
-            notDuplicatedUserRequestData = updateJsonValue(notDuplicatedUserRequestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
-        }
-        assertPostRequestCreated("/api/v1/user", notDuplicatedUserRequestData);
+        ));
     }
 
     @Test
@@ -483,5 +526,83 @@ public class UserControllerTests {
                 .build();
 
         validateLoginFails(loginRequestDTO);
+    }
+
+    @Test
+    @DisplayName("카카오 사용자 생성 시 필수 값 검증")
+    void createKakaoUserValidateRequiredFields() {
+        String endPoint = "/api/v1/user/kakao";
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.kakaoUser);
+        validateCreateMemberCommonFields(jsonString, endPoint);
+
+        List<String> requiredFieldsRemoveKeyList = List.of("kakaoId");
+        List<String> requestDataList = requiredFieldsRemoveKeyList.stream().map(key -> removeJsonKey(jsonString, key)).toList();
+
+        requestDataList.forEach(requestData -> assertPostRequestBadRequest(endPoint, requestData));
+    }
+
+    @Test
+    @DisplayName("카카오 사용자 생성 시 중복 값 검증")
+    void createKakaoUserValidateDuplication() {
+        doReturn(KakaoRefreshToken.builder().build())
+                .when(kakaoRefreshTokenRepository).findByKakaoId(anyLong());
+
+        doReturn(KakaoTokenResponse.builder().build())
+                .when(kakaoLoginService).requestRenewKakaoAccessToken(any());
+        doReturn(KakaoUserProfileResponse.builder()
+                .connectedAt(LocalDateTime.now())
+                .kakaoAccount(KakaoUserProfileResponse.KakaoAccountDTO.builder()
+                        .profileNicknameNeedsAgreement(false)
+                        .profileImageNeedsAgreement(false)
+                        .profile(KakaoUserProfileResponse.KakaoAccountDTO.ProfileDTO.builder()
+                                .thumbnailImageUrl("test")
+                                .isDefaultImage(false)
+                                .nickname("테스터")
+                                .profileImageUrl("test")
+                                .build())
+                        .build())
+                .build())
+                .when(kakaoLoginService).requestKakaoUserProfile(any());
+
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.kakaoUser);
+
+        validateDuplatedUserFields(jsonString, "/api/v1/user/kakao", Map.of(
+                "$.kakaoId", 2L
+        ));
+    }
+
+    @Test
+    @DisplayName("카카오 사용자 생성 시 refresh token이 만료된 경우")
+    void createKakaoUserFailsWhenRefreshTokenExpired() {
+        doReturn(null)
+                .when(kakaoRefreshTokenRepository).findByKakaoId(anyLong());
+
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.kakaoUser);
+
+        assertPostRequestBadRequest("/api/v1/user/kakao", jsonString);
+    }
+
+    @Test
+    @DisplayName("카카오 사용자 로그인 성공")
+    void kakaoLoginSuccess() throws Exception {
+        KakaoUser testKakaoUser = createTestkakaoUser(entityManager);
+
+        doReturn(KakaoTokenResponse.builder().build())
+                .when(kakaoLoginService).requestKakaoAccessToken(any());
+        doReturn(KakaoUserProfileResponse.builder()
+                .id(testKakaoUser.getKakaoId())
+                .build())
+                .when(kakaoLoginService).requestKakaoUserProfile(any());
+        
+        // 로그인 요청 보냈을 때 토큰을 받는다
+        KakaoLoginRequestDTO kakaoLoginRequestDTO = KakaoLoginRequestDTO.builder()
+                .authorizationCode("testCode")
+                .build();
+
+        MvcResult mvcResult = requestPost("/api/v1/user/login/kakao", objectMapper.writeValueAsString(kakaoLoginRequestDTO))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertEquals(getUserIdFromTokenResponseDTO(mvcResult), testKakaoUser.getUserLoginCategory().getUser().getUserId());
     }
 }

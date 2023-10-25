@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 
 @Builder
 @AllArgsConstructor
@@ -17,6 +18,7 @@ public class KakaoTokenResponse {
     private String tokenType;
     private String refreshToken;
     private Long expiresIn;
+    @Nullable
     private String scope;
     private Long refreshTokenExpiresIn;
 }

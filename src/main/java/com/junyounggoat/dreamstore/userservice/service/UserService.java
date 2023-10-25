@@ -22,6 +22,7 @@ import java.util.List;
 public class UserService {
     private final TokenService tokenService;
     private final SendEventService sendEventService;
+    private final KakaoLoginService kakaoLoginService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
@@ -45,11 +46,19 @@ public class UserService {
         return tokenService.createAccessTokenWithRefreshToken(createMemberCreatedEntity.getUser().getUserId());
     }
 
+    public TokenResponseDTO createKakaoUser(CreateKakaoUserRequestDTO createKakaoUserRequestDTO) {
+        CreateMemberCreatedEntity createMemberCreatedEntity = createMember(createKakaoUserRequestDTO, UserLoginCategoryCode.userLoginCredentials);
+
+        kakaoLoginService.createKakaoUser(createMemberCreatedEntity.getUserLoginCategory(), createKakaoUserRequestDTO.getKakaoId());
+
+        return tokenService.createAccessTokenWithRefreshToken(createMemberCreatedEntity.getUser().getUserId());
+    }
+
     // 회원 가입 시 공통 프로세스
-    private CreateMemberCreatedEntity createMember(CreateUserRequestDTO createUserRequestDTO, UserLoginCategoryCode userLoginCategoryCode) {
+    private CreateMemberCreatedEntity createMember(NewMemberCommonFields newMemberCommonFields, UserLoginCategoryCode userLoginCategoryCode) {
         // user 엔티티
         User createdUser = userRepository.insertUser(
-                createUserRequestDTO.getUser()
+                newMemberCommonFields.getUser()
                         .toUserBuilder()
                         .userNonmemberFlag(false)
                         .build()
@@ -64,12 +73,12 @@ public class UserService {
         // userAgreementItem 엔티티 - 여러개
         List<UserAgreementItem> createdUserAgreementItemList = userRepository.insertUserAgreementItems(
                 createdUser,
-                createUserRequestDTO.getUserAgreementItemCodeList()
+                newMemberCommonFields.getUserAgreementItemCodeList()
         );
         // userPrivacyUsagePeriod 엔티티
         UserPrivacyUsagePeriod createdUserPrivacyUsagePeriod = userRepository.insertUserPrivacyUsagePeriod(
                 createdUser,
-                createUserRequestDTO.getUserPrivacyUsagePeriodCode()
+                newMemberCommonFields.getUserPrivacyUsagePeriodCode()
         );
 
         return CreateMemberCreatedEntity
@@ -219,10 +228,5 @@ public class UserService {
         deleteUserPrivacy(userPrivacy);
 
         sendEventService.sendEventBackupExpiredUserPrivacy(backupExpiredUserPrivacyEventDTO);
-    }
-
-    @Transactional(readOnly = true)
-    public @Nullable User findUserByKakaoId(Long kakaoId) {
-        return userRepository.findUserByKakaoId(kakaoId);
     }
 }

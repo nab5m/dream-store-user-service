@@ -17,31 +17,34 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static com.junyounggoat.dreamstore.userservice.service.KakaoLoginService.REQUEST_KAKAO_PROFILE_FAILED_MESSAGE;
-import static com.junyounggoat.dreamstore.userservice.service.KakaoLoginService.REQUEST_KAKAO_TOKEN_FAILED_MESSAGE;
+import static com.junyounggoat.dreamstore.userservice.service.KakaoLoginService.*;
 
 public abstract class UserControllerDocs {
+    private static final String CREATE_MEMBER_COMMON_FIELDS_DESCRIPTION =
+            DocumentMessages.USER_PERSON_NAME_DESCRIPTION +
+            DocumentMessages.USER_EMAIL_ADDRESS_DESCRIPTION +
+            DocumentMessages.USER_PHONE_NUMBER_DESCRIPTION +
+            "<h3>사용자동의항목 - 코드</h3>" +
+            "<ul>" +
+            "<li>개인정보 수집 및 이용 동의(필수) - 0 </li>" +
+            "<li>개인정보 수집 및 이용 동의 (선택) - 1 </li>" +
+            "<li>이용약관 (필수) -2 </li>" +
+            "<li>SMS 수신 (선택) - 3 </li>" +
+            "<li>푸시알림 수신 (선택) - 4 </li>" +
+            "<li>이메일 수신 (선택) - 5 </li>" +
+            "</ul>" +
+            DocumentMessages.USER_PRIVACY_USAGE_PERIOD_CODE_DESCRIPTION;
+
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @Operation(summary = "사용자로그인자격증명으로 가입")
     @RequestBody(
-            description = DocumentMessages.USER_PERSON_NAME_DESCRIPTION +
-                    DocumentMessages.USER_EMAIL_ADDRESS_DESCRIPTION +
-                    DocumentMessages.USER_PHONE_NUMBER_DESCRIPTION +
+            description =
                     "<h3>로그인사용자이름 (UNIQUE)</h3>" +
                     UserLoginCredentialsValidation.LOGIN_USER_NAME_MESSAGE +
                     "<h3>로그인사용자비밀번호</h3>" +
                     UserLoginCredentialsValidation.RAW_LOGIN_USER_PASSWORD_MESSAGE +
-                    "<h3>사용자동의항목 - 코드</h3>" +
-                    "<ul>" +
-                    "<li>개인정보 수집 및 이용 동의(필수) - 0 </li>" +
-                    "<li>개인정보 수집 및 이용 동의 (선택) - 1 </li>" +
-                    "<li>이용약관 (필수) -2 </li>" +
-                    "<li>SMS 수신 (선택) - 3 </li>" +
-                    "<li>푸시알림 수신 (선택) - 4 </li>" +
-                    "<li>이메일 수신 (선택) - 5 </li>" +
-                    "</ul>" +
-                    DocumentMessages.USER_PRIVACY_USAGE_PERIOD_CODE_DESCRIPTION,
+                    CREATE_MEMBER_COMMON_FIELDS_DESCRIPTION,
             content = @Content(schema = @Schema(implementation = CreateUserRequestDTO.class))
     )
     @ApiResponses(value = {
@@ -57,6 +60,36 @@ public abstract class UserControllerDocs {
                             "}")))
     })
     public @interface CreateUserDocs { }
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "카카오사용자 가입")
+    @RequestBody(
+            description =
+                    "<h3>카카오ID</h3>" +
+                    "kakaoId는 [POST] /api/v1/user/login/kakao의 404 응답으로 받은 값을 사용하시면 됩니다." +
+                    CREATE_MEMBER_COMMON_FIELDS_DESCRIPTION,
+            content = @Content(schema = @Schema(implementation = CreateKakaoUserRequestDTO.class))
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "회원가입 성공 및 accessToken 발급",
+                    content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "필수값 누락, 잘못된 형식의 입력, 중복된 값 입력",
+                    content = @Content(schema = @Schema(example = "{\n" +
+                            "    \"fieldErrors\": {\n" +
+                            "        \"user.userPersonName\": \"2~30자의 이름을 입력해주세요.\",\n" +
+                            "        \"kakaoId\": \"이미 가입한 카카오 사용자입니다.\"\n" +
+                            "    }," +
+                            "    \"notFieldErrors\": []\n" +
+                            "}"))),
+            @ApiResponse(responseCode = "400 ", description = "카카오 Refresh Token 조회 실패",
+                    content = @Content(schema = @Schema(example = KAKAO_REFRESH_TOKEN_NOT_EXISTS))),
+            @ApiResponse(responseCode = "400  ", description = "카카오 Access Token 갱신 실패",
+                    content = @Content(schema = @Schema(example = REQUEST_RENEW_KAKAO_TOKEN_FAILED))),
+            @ApiResponse(responseCode = "400   ", description = "카카오 프로필 조회 실패",
+                    content = @Content(schema = @Schema(example = REQUEST_KAKAO_PROFILE_FAILED_MESSAGE)))
+    })
+    public @interface CreateKakaoUserDocs { }
 
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
@@ -138,7 +171,7 @@ public abstract class UserControllerDocs {
 
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
-    @Operation(summary = "카카오 로그인")
+    @Operation(summary = "카카오사용자로 로그인")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "로그인 성공 및 accessToken 발급",
                     content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
@@ -153,8 +186,8 @@ public abstract class UserControllerDocs {
                     content = @Content(schema = @Schema(example = REQUEST_KAKAO_TOKEN_FAILED_MESSAGE))),
             @ApiResponse(responseCode = "400  ", description = "카카오 프로필 조회 실패",
                     content = @Content(schema = @Schema(example = REQUEST_KAKAO_PROFILE_FAILED_MESSAGE))),
-            @ApiResponse(responseCode = "404", description = "미가입 사용자",
-                    content = @Content(schema = @Schema(description = "kakaoId: Long, 회원가입 시 사용", implementation = Long.class)))
+            @ApiResponse(responseCode = "404", description = "미가입 사용자 : kakaoId(Long)를 반환하며 회원가입 시 사용",
+                    content = @Content(schema = @Schema(implementation = Long.class)))
     })
     public @interface KakaoLoginDocs { }
 }

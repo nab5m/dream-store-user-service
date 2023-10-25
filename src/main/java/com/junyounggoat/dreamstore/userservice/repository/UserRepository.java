@@ -82,6 +82,13 @@ public class UserRepository {
         return created;
     }
 
+    public KakaoUser insertKakaoUser(KakaoUser kakaoUser) {
+        KakaoUser created = kakaoUser.toBuilder().build();
+        entityManager.persist(created);
+
+        return created;
+    }
+
     public @Nullable User findUserByUserEmailAddress(String userEmailAddress) {
         return queryFactory.selectFrom(qUser)
                 .where(qUser.userEmailAddress.eq(userEmailAddress)

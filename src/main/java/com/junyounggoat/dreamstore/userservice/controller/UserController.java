@@ -40,28 +40,19 @@ public class UserController {
     private final RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
     private final CodeExistValidator codeExistValidator;
 
-    @PostMapping("")
-    @ResponseStatus(code = HttpStatus.CREATED)
-    @UserControllerDocs.CreateUserDocs
-    public TokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
-        NotValidException.throwIfErrorExists(errors);
-
+    private void validateNewMemberCommonFields(NewMemberCommonFields newMemberCommonFields, Errors errors) {
         UniqueColumnValidator.validateUniqueUserEmailAddress(uniqueColumnValidator,
                 "user.userEmailAddress",
-                createUserRequestDTO.getUser().getUserEmailAddress(),
+                newMemberCommonFields.getUser().getUserEmailAddress(),
                 errors);
         UniqueColumnValidator.validateUniqueUserPhoneNumber(uniqueColumnValidator,
                 "user.userPhoneNumber",
-                createUserRequestDTO.getUser().getUserPhoneNumber(),
-                errors);
-        UniqueColumnValidator.validateUniqueLoginUserName(uniqueColumnValidator,
-                "userLoginCredentials.loginUserName",
-                createUserRequestDTO.getUserLoginCredentials().getLoginUserName(),
+                newMemberCommonFields.getUser().getUserPhoneNumber(),
                 errors);
 
         // 이렇게 검증이 필요하다면 그냥 fk를 걸었지 싶다
         List<CodeExistValidator.TargetCodeItem> usedCodeList = new LinkedList<>();
-        createUserRequestDTO.getUserAgreementItemCodeList().forEach((userAgreementItemCode) -> {
+        newMemberCommonFields.getUserAgreementItemCodeList().forEach((userAgreementItemCode) -> {
             usedCodeList.add(CodeExistValidator.TargetCodeItem.builder()
                     .codeItem(CodeCategoryNameAndCodeName.builder()
                             .codeCategoryName(CodeCategoryName.USER_AGREEMENT_ITEM.getName())
@@ -74,7 +65,7 @@ public class UserController {
         usedCodeList.add(CodeExistValidator.TargetCodeItem.builder()
                 .codeItem(CodeCategoryNameAndCodeName.builder()
                         .codeCategoryName(CodeCategoryName.USER_PRIVACY_USAGE_PERIOD.getName())
-                        .code(createUserRequestDTO.getUserPrivacyUsagePeriodCode())
+                        .code(newMemberCommonFields.getUserPrivacyUsagePeriodCode())
                         .build())
                 .field("userPrivacyUsagePeriodCode")
                 .build());
@@ -82,12 +73,38 @@ public class UserController {
         CodeExistValidator.validateCodeExists(codeExistValidator, usedCodeList, errors);
         validateRequiredUserAgreementItem(requiredUserAgreementItemValidator,
                 "userAgreementItemCodeList",
-                createUserRequestDTO.getUserAgreementItemCodeList(),
+                newMemberCommonFields.getUserAgreementItemCodeList(),
+                errors);
+    }
+
+    @PostMapping("")
+    @ResponseStatus(code = HttpStatus.CREATED)
+    @UserControllerDocs.CreateUserDocs
+    public TokenResponseDTO createUser(@RequestBody @Valid CreateUserRequestDTO createUserRequestDTO, Errors errors) {
+        NotValidException.throwIfErrorExists(errors);
+
+        validateNewMemberCommonFields(createUserRequestDTO, errors);
+        UniqueColumnValidator.validateUniqueLoginUserName(uniqueColumnValidator,
+                "userLoginCredentials.loginUserName",
+                createUserRequestDTO.getUserLoginCredentials().getLoginUserName(),
                 errors);
 
         NotValidException.throwIfErrorExists(errors);
 
         return userService.createUserByLoginCredentials(createUserRequestDTO);
+    }
+
+    @PostMapping("/kakao")
+    @ResponseStatus(code = HttpStatus.CREATED)
+    @UserControllerDocs.CreateKakaoUserDocs
+    public TokenResponseDTO createKakaoUser(@RequestBody @Valid CreateKakaoUserRequestDTO createKakaoUserRequestDTO, Errors errors) {
+        NotValidException.throwIfErrorExists(errors);
+
+        validateNewMemberCommonFields(createKakaoUserRequestDTO, errors);
+        UniqueColumnValidator.validateUniqueKakaoId(uniqueColumnValidator, "kakaoId", createKakaoUserRequestDTO.getKakaoId(), errors);
+        NotValidException.throwIfErrorExists(errors);
+
+        return userService.createKakaoUser(createKakaoUserRequestDTO);
     }
 
     @PostMapping("/login")
@@ -201,6 +218,14 @@ public class UserController {
     public TokenResponseDTO kakaoLogin(@RequestBody @Valid KakaoLoginRequestDTO kakaoLoginRequestDTO, Errors errors) {
         NotValidException.throwIfErrorExists(errors);
 
-        return kakaoLoginService.loginKakaoUser(kakaoLoginRequestDTO.getAuthorizationCode());
+        KakaoLoginService.KakaoLoginResult kakaoLoginResult =
+                kakaoLoginService.loginKakaoUser(kakaoLoginRequestDTO.getAuthorizationCode());
+
+        TokenResponseDTO tokenResponseDTO = kakaoLoginResult.getTokenResponseDTO();
+        if (tokenResponseDTO == null) {
+            throw new NotFoundException(kakaoLoginResult.getKakaoId().toString());
+        }
+
+        return tokenResponseDTO;
     }
 }

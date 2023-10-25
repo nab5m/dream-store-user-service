@@ -4,5 +4,6 @@ public enum UniqueColumn {
     UserEmailAddress,
     UserPhoneNumber,
     LoginUserName,
-    UserNickname;
+    UserNickname,
+    KakaoId;
 }

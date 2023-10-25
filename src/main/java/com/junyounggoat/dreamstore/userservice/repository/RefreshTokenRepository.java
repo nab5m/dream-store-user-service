@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.TimeUnit;
 
@@ -20,6 +22,7 @@ public class RefreshTokenRepository {
         redisTemplate.expire(refreshToken.getRefreshToken(), REFRESH_TOKEN_VALID_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public @Nullable RefreshToken findById(final String refreshToken) {
         String userId = redisTemplate.opsForValue().get(refreshToken);
         if (userId == null) {
