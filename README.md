@@ -1,5 +1,11 @@
 # 준영GOAT 꿈백화점 UserService
 
+## ACTIVE_PROFILE 설정
+- SPRING_PROFILES_ACTIVE 환경 변수로 설정 가능
+- develop-h2 (기본) : h2 데이터베이스 사용, 로컬 개발 환경이나 테스트 실행 시 사용 가능
+- develop-mysql : MySQL 데이터베이스 사용, 로컬 개발 환경에서 반영구적으로 테스트 데이터를 저장하기 위해 사용
+- production: 배포 서버에서 사용되는 프로필
+
 ## 환경 변수 설정
 1. redis 설정
     - spring-redis-host=<로컬/테스트 레디스 주소>
