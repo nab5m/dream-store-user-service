@@ -107,6 +107,20 @@ public class TokenService {
         return refreshTokenRepository.deleteById(refreshToken);
     }
 
+    public static @Nullable Long getUserIdFromAccessToken(String accessToken) {
+        Claims claims = getClaims(accessToken);
+        if (claims == null) {
+            return null;
+        }
+
+        try {
+            return claims.get(JWT_CLAIM_USER_ID, Long.class);
+        } catch (RequiredTypeException e) {
+            logger.info("TypeCastUserId Failed : " + accessToken);
+            return null;
+        }
+    }
+
     public static Long getUserIdFromUserDetails(@Nullable UserDetails userDetails) {
         // ToDo: 예외처리를 더 깔끔하게 할 수 없을까?
         if (userDetails == null) {
@@ -114,17 +128,8 @@ public class TokenService {
         }
 
         String token = userDetails.getPassword();
-        Claims claims = getClaims(token);
-        if (claims == null) {
-            throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
-        }
-
-        Long userId;
-        try {
-            userId = claims.get(JWT_CLAIM_USER_ID, Long.class);
-        } catch (RequiredTypeException e) {
-            logger.info("TypeCastUserId Failed : " + token);
-
+        Long userId = getUserIdFromAccessToken(token);
+        if (userId == null) {
             throw new UnAuthorizedException(LOGIN_REQUIRED_ERROR_MESSAGE);
         }
 

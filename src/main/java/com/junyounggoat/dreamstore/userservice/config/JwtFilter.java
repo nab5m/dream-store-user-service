@@ -1,8 +1,6 @@
 package com.junyounggoat.dreamstore.userservice.config;
 
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.RequiredTypeException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -31,24 +29,17 @@ public class JwtFilter extends GenericFilterBean {
             return;
         }
 
-        Claims claims = TokenService.getClaims(token);
-        if (claims == null) {
+        Long userId = TokenService.getUserIdFromAccessToken(token);
+        if (userId == null) {
             chain.doFilter(request, response);
             return;
         }
 
         UserDetails userDetails;
-        try {
-             userDetails = User.builder()
-                    .username(claims.get(TokenService.JWT_CLAIM_USER_ID, Long.class).toString())
-                    .password(token)
-                    .build();
-        } catch (RequiredTypeException e) {
-            logger.info("TypeCastUserId Failed : " + token);
-
-            chain.doFilter(request, response);
-            return;
-        }
+        userDetails = User.builder()
+                .username(userId.toString())
+                .password(token)
+                .build();
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
