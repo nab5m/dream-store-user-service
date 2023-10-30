@@ -8,8 +8,12 @@
 
 ## 환경 변수 설정
 1. redis 설정
-    - spring-redis-host=<로컬/테스트 레디스 주소>
-    - spring-redis-port=<로컬/테스트 레디스 포트>
+   - spring-redis-host=<로컬/테스트 레디스 주소>
+   - spring-redis-port=<로컬/테스트 레디스 포트>
+2. spring-cloud AWS 키 설정
+   - spring-cloud-aws-credentials-access-key=<AWS 엑세스 키>
+   - spring-cloud-aws-credentials-secret-key=<AWS 시크릿 키>
+   - spring-cloud-aws-sqs-region=<AWS SQS 리전>
 2. (선택) mysql 사용 시
    - SPRING_PROFILES_ACTIVE=develop-mysql
    - spring-datasource-url=<로컬/테스트 데이터베이스 주소>
