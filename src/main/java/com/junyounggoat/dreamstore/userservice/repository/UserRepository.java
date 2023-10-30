@@ -26,12 +26,14 @@ public class UserRepository {
     private final QUserLoginCredentials qUserLoginCredentials = QUserLoginCredentials.userLoginCredentials;
     private final QUserPrivacyUsagePeriod qUserPrivacyUsagePeriod = QUserPrivacyUsagePeriod.userPrivacyUsagePeriod;
     private final QKakaoUser qKakaoUser = QKakaoUser.kakaoUser;
+    private final QNaverUser qNaverUser = QNaverUser.naverUser;
 
     private final BooleanExpression qUserIsNotDeleted = qUser.timestamp.deletionDateTime.isNull();
     private final BooleanExpression qUserLoginCategoryIsNotDeleted = qUserLoginCategory.deletionDateTime.isNull();
     private final BooleanExpression qUserLoginCredentialsIsNotDeleted = qUserLoginCredentials.timestamp.deletionDateTime.isNull();
     private final BooleanExpression qUserPrivacyUsagePeriodIsNotDeleted = qUserPrivacyUsagePeriod.timestamp.deletionDateTime.isNull();
     private final BooleanExpression qKakaoUserIsNotDeleted = qKakaoUser.timestamp.deletionDateTime.isNull();
+    private final BooleanExpression qNaverUserIsNotDeleted = qNaverUser.timestamp.deletionDateTime.isNull();
 
     public User insertUser(User user) {
         User created = user.toBuilder().build();
@@ -203,6 +205,18 @@ public class UserRepository {
                 .innerJoin(qUserLoginCategory.user, qUser)
                 .where(qKakaoUser.kakaoId.eq(kakaoId)
                         .and(qKakaoUserIsNotDeleted)
+                        .and(qUserLoginCategoryIsNotDeleted)
+                        .and(qUserIsNotDeleted))
+                .fetchOne();
+    }
+
+    public @Nullable User findUserByNaverId(String naverId) {
+        return queryFactory.selectFrom(qNaverUser)
+                .select(qUser)
+                .innerJoin(qNaverUser.userLoginCategory, qUserLoginCategory)
+                .innerJoin(qUserLoginCategory.user, qUser)
+                .where(qNaverUser.naverId.eq(naverId)
+                        .and(qNaverUserIsNotDeleted)
                         .and(qUserLoginCategoryIsNotDeleted)
                         .and(qUserIsNotDeleted))
                 .fetchOne();

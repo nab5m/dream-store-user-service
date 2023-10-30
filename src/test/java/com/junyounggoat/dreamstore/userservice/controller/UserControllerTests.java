@@ -21,9 +21,7 @@ import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Spy;
 import org.slf4j.Logger;
@@ -34,6 +32,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.lang.Nullable;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -71,6 +70,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Transactional
 @Import({ EmbeddedRedisConfig.class })
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UserControllerTests {
     private MockMvc mockMvc;
     @PersistenceContext
@@ -81,6 +81,8 @@ public class UserControllerTests {
     private CodeRepository codeRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private EmbeddedRedisConfig embeddedRedisConfig;
     @SpyBean
     private KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
     @SpyBean
@@ -114,6 +116,16 @@ public class UserControllerTests {
                     "}"
     );
 
+    @BeforeAll
+    public void startRedisServer() {
+        embeddedRedisConfig.startRedis();
+    }
+
+    @AfterAll
+    public void stopRedisServer() {
+        embeddedRedisConfig.stopRedis();
+    }
+
     @BeforeEach
     private void setup(WebApplicationContext webApplicationContext, RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -130,7 +142,7 @@ public class UserControllerTests {
                 .contentType(MediaType.APPLICATION_JSON));
     }
 
-    private record CreateUserResult(long userId, @JsonUnwrapped CreateUserRequestDTO createUserRequestDTO) { }
+    private record CreateUserResult(@Nullable Long userId, @JsonUnwrapped CreateUserRequestDTO createUserRequestDTO) { }
 
     private CreateUserResult createTestUser() throws Exception {
         String requestData = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
@@ -140,7 +152,7 @@ public class UserControllerTests {
                 .contentType(MediaType.APPLICATION_JSON)
         ).andReturn();
 
-        long userId = getUserIdFromTokenResponseDTO(mvcResult);
+        Long userId = getUserIdFromTokenResponseDTO(mvcResult);
         CreateUserRequestDTO createUserRequestDTO = objectMapper.readValue(requestData, CreateUserRequestDTO.class);
 
         return new CreateUserResult(userId, createUserRequestDTO);
@@ -186,11 +198,11 @@ public class UserControllerTests {
         return documentContext.jsonString();
     }
 
-    private long getUserIdFromAccessToken(String accessToken) {
-        return ((Integer) TokenService.getClaims(accessToken).get("userId")).longValue();
+    private @Nullable Long getUserIdFromAccessToken(String accessToken) {
+        return TokenService.getUserIdFromAccessToken(accessToken);
     }
 
-    private long getUserIdFromTokenResponseDTO(MvcResult mvcResult) throws UnsupportedEncodingException, JsonProcessingException {
+    private @Nullable Long getUserIdFromTokenResponseDTO(MvcResult mvcResult) throws UnsupportedEncodingException, JsonProcessingException {
         String responseBody = mvcResult.getResponse().getContentAsString(StandardCharsets.UTF_8);
         TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
 
@@ -373,8 +385,8 @@ public class UserControllerTests {
     void createUserSuccessResponseIncludesJwt() throws UnsupportedEncodingException, JsonProcessingException {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
         MvcResult mvcResult = assertPostRequestCreated("/api/v1/user", jsonString).andReturn();
-        long userId = getUserIdFromTokenResponseDTO(mvcResult);
-        assertTrue(userId > 0, "jwt의 userId가 비정상적입니다.");
+        Long userId = getUserIdFromTokenResponseDTO(mvcResult);
+        assertTrue(userId != null && userId > 0, "jwt의 userId가 비정상적입니다.");
     }
 
     private void createUserValidateCodeExists(final String fieldName, final String requestData) throws JsonProcessingException, UnsupportedEncodingException {

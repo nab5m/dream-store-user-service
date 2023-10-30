@@ -17,7 +17,11 @@ public class EmbeddedRedisConfig {
 
     @PostConstruct
     public void startRedis() {
-        this.redisServer.start();
+        try {
+            this.redisServer.start();
+        } catch (Exception e) {
+            System.out.println("redis Server 실행 실패 : " + e.getMessage());
+        }
     }
 
     @PreDestroy
