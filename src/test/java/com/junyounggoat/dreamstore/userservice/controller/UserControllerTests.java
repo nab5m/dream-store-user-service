@@ -17,6 +17,7 @@ import com.junyounggoat.dreamstore.userservice.repository.CodeRepository;
 import com.junyounggoat.dreamstore.userservice.repository.KakaoRefreshTokenRepository;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.service.KakaoLoginService;
+import com.junyounggoat.dreamstore.userservice.service.NaverLoginService;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
 import jakarta.persistence.EntityManager;
@@ -55,8 +56,7 @@ import static com.junyounggoat.dreamstore.userservice.entity.KakaoUserTests.crea
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -87,6 +87,8 @@ public class UserControllerTests {
     private KakaoRefreshTokenRepository kakaoRefreshTokenRepository;
     @SpyBean
     private KakaoLoginService kakaoLoginService;
+    @MockBean
+    private NaverLoginService naverLoginService;
 
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
@@ -115,6 +117,9 @@ public class UserControllerTests {
                     "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
                     "}"
     );
+    private final String loginNaverUserRequestJsonString = "{\n" +
+            "   \"naverAccessToken\": \"testToken\"\n" +
+            "}";
 
     @BeforeAll
     public void startRedisServer() {
@@ -616,5 +621,47 @@ public class UserControllerTests {
                 .andReturn();
 
         assertEquals(getUserIdFromTokenResponseDTO(mvcResult), testKakaoUser.getUserLoginCategory().getUser().getUserId());
+    }
+
+    @Test
+    @DisplayName("네이버사용자 로그인 : 필수 값 누락")
+    public void loginNaverUserFailsWhenRequiredFieldsOmitted() {
+        Map<String, Object> requiredFieldsKeyEmptyValueMap = Map.of(
+                "naverAccessToken", ""
+        );
+        List<String> requiredFieldsKeyList = List.of(
+                "naverAccessToken"
+        );
+
+        List<String> requestDataList = requiredFieldsKeyEmptyValueMap
+                .entrySet()
+                .stream()
+                .map(entry -> updateJsonValue(loginNaverUserRequestJsonString, entry.getKey(), entry.getValue()))
+                .toList();
+        requestDataList = Stream.concat(
+                requestDataList.stream(),
+                requiredFieldsKeyList.stream()
+                        .map(key -> removeJsonKey(loginNaverUserRequestJsonString, key))
+        ).toList();
+
+        requestDataList.forEach(requestData ->
+                assertPostRequestBadRequest("/api/v1/user/login/naver", requestData));
+    }
+
+    @Test
+    @DisplayName("네이버사용자 로그인 성공")
+    public void loginNaverUserFailsWhenNaverUserDuplicated() throws Exception {
+        when(naverLoginService.loginNaverUser(anyString()))
+                .thenReturn(TokenResponseDTO.builder()
+                        .build());
+
+        String responseBody = requestPost("/api/v1/user/login/naver", loginNaverUserRequestJsonString)
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
+        assertNotNull(tokenResponseDTO);
     }
 }
