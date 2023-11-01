@@ -3,6 +3,7 @@ package com.junyounggoat.dreamstore.userservice.controller;
 import com.junyounggoat.dreamstore.userservice.constant.CodeCategoryName;
 import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.service.KakaoLoginService;
+import com.junyounggoat.dreamstore.userservice.service.NaverLoginService;
 import com.junyounggoat.dreamstore.userservice.validation.*;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository.CodeCategoryNameAndCodeName;
 import com.junyounggoat.dreamstore.userservice.service.UserService;
@@ -36,6 +37,7 @@ public class UserController {
 
     private final UserService userService;
     private final KakaoLoginService kakaoLoginService;
+    private final NaverLoginService naverLoginService;
     private final UniqueColumnValidator uniqueColumnValidator;
     private final RequiredUserAgreementItemValidator requiredUserAgreementItemValidator;
     private final CodeExistValidator codeExistValidator;
@@ -227,5 +229,13 @@ public class UserController {
         }
 
         return tokenResponseDTO;
+    }
+
+    @PostMapping("/login/naver")
+    @UserControllerDocs.NaverLoginDocs
+    public TokenResponseDTO naverLogin(@RequestBody @Valid NaverLoginRequestDTO naverLoginRequestDTO, Errors errors) {
+        NotValidException.throwIfErrorExists(errors);
+
+        return naverLoginService.loginNaverUser(naverLoginRequestDTO.getNaverAccessToken());
     }
 }

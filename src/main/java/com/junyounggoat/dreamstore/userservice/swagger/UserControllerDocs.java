@@ -18,6 +18,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static com.junyounggoat.dreamstore.userservice.service.KakaoLoginService.*;
+import static com.junyounggoat.dreamstore.userservice.service.NaverLoginService.REQUEST_NAVER_USER_PROFILE_FAILED;
 
 public abstract class UserControllerDocs {
     private static final String CREATE_MEMBER_COMMON_FIELDS_DESCRIPTION =
@@ -190,4 +191,23 @@ public abstract class UserControllerDocs {
                     content = @Content(schema = @Schema(implementation = Long.class)))
     })
     public @interface KakaoLoginDocs { }
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "네이버사용자로 로그인")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그인 성공 및 accessToken 발급",
+                    content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "엑세스 토큰 미입력",
+                    content = @Content(schema = @Schema(example = "{\n" +
+                            "  \"fieldErrors\": {\n" +
+                            "    \"naverAccessToken\": \"공백일 수 없습니다\"\n" +
+                            "  },\n" +
+                            "  \"notFieldErrors\": []\n" +
+                            "}"))),
+            @ApiResponse(responseCode = "400 ", description = "네이버 프로필 조회 실패",
+                    content = @Content(schema = @Schema(example = REQUEST_NAVER_USER_PROFILE_FAILED))),
+            @ApiResponse(responseCode = "404", description = "미가입 사용자")
+    })
+    public @interface NaverLoginDocs { }
 }
