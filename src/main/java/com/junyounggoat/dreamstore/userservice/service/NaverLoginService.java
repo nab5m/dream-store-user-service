@@ -2,7 +2,9 @@ package com.junyounggoat.dreamstore.userservice.service;
 
 import com.junyounggoat.dreamstore.userservice.dto.NaverUserProfileResponseDTO;
 import com.junyounggoat.dreamstore.userservice.dto.TokenResponseDTO;
+import com.junyounggoat.dreamstore.userservice.entity.NaverUser;
 import com.junyounggoat.dreamstore.userservice.entity.User;
+import com.junyounggoat.dreamstore.userservice.entity.UserLoginCategory;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.validation.BadRequestException;
 import com.junyounggoat.dreamstore.userservice.validation.NotFoundException;
@@ -64,5 +66,12 @@ public class NaverLoginService {
         }
 
         return tokenService.createAccessTokenWithRefreshToken(user.getUserId());
+    }
+
+    public NaverUser createNaverUser(UserLoginCategory userLoginCategory, final String accessToken) throws BadRequestException {
+        NaverUserProfileResponseDTO naverUserProfileResponseDTO = requestNaverUserProfile(accessToken);
+
+        NaverUser naverUser = naverUserProfileResponseDTO.toNaverUser(userLoginCategory);
+        return userRepository.insertNaverUser(naverUser);
     }
 }

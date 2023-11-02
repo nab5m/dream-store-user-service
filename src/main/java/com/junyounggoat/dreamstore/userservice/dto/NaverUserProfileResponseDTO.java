@@ -1,6 +1,8 @@
 package com.junyounggoat.dreamstore.userservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.junyounggoat.dreamstore.userservice.entity.NaverUser;
+import com.junyounggoat.dreamstore.userservice.entity.UserLoginCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -39,5 +41,24 @@ public class NaverUserProfileResponseDTO {
 
     public String getNaverId() {
         return this.getResponse().getId();
+    }
+
+    public NaverUser toNaverUser(UserLoginCategory userLoginCategory) {
+        NaverUserProfileResponseDTO.ResponseDTO naverUserProfile = this.getResponse();
+        String birthYear = naverUserProfile.getBirthYear();
+
+        return NaverUser.builder()
+                .userLoginCategory(userLoginCategory)
+                .naverId(naverUserProfile.getId())
+                .naverUserName(naverUserProfile.getName())
+                .naverUserNickname(naverUserProfile.getNickname())
+                .naverUserProfileImageUrl(naverUserProfile.getProfileImage())
+                .naverUserEmailAddress(naverUserProfile.getEmail())
+                .naverUserBirthYear(birthYear != null ? Integer.valueOf(birthYear) : null)
+                .naverUserBirthDay(naverUserProfile.getBirthDay())
+                .naverUserPhoneNumber(naverUserProfile.getMobile())
+                .naverUserPhoneNumber_e164(naverUserProfile.getMobile_e164())
+                .naverUserGender(naverUserProfile.getGender())
+                .build();
     }
 }
