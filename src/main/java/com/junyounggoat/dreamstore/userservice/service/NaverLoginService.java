@@ -53,6 +53,13 @@ public class NaverLoginService {
     }
 
     @Transactional(readOnly = true)
+    public @Nullable User getUserByAccessToken(final String accessToken) {
+        NaverUserProfileResponseDTO naverUserProfileResponseDTO = requestNaverUserProfile(accessToken);
+
+        return getUserByNaverId(naverUserProfileResponseDTO.getNaverId());
+    }
+
+    @Transactional(readOnly = true)
     public @Nullable User getUserByNaverId(final String naverId) {
         return userRepository.findUserByNaverId(naverId);
     }
