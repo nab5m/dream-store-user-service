@@ -10,8 +10,8 @@ import com.junyounggoat.dreamstore.userservice.constant.CodeGroupName;
 import com.junyounggoat.dreamstore.userservice.constant.UserLoginCategoryCode;
 import com.junyounggoat.dreamstore.userservice.dto.*;
 import com.junyounggoat.dreamstore.userservice.entity.KakaoUser;
+import com.junyounggoat.dreamstore.userservice.entity.NaverUser;
 import com.junyounggoat.dreamstore.userservice.entity.User;
-import com.junyounggoat.dreamstore.userservice.entity.UserLoginCategory;
 import com.junyounggoat.dreamstore.userservice.redishash.KakaoRefreshToken;
 import com.junyounggoat.dreamstore.userservice.repository.CodeRepository;
 import com.junyounggoat.dreamstore.userservice.repository.KakaoRefreshTokenRepository;
@@ -19,12 +19,14 @@ import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.service.KakaoLoginService;
 import com.junyounggoat.dreamstore.userservice.service.NaverLoginService;
 import com.junyounggoat.dreamstore.userservice.service.TokenService;
+import com.junyounggoat.dreamstore.userservice.service.UserService;
+import com.junyounggoat.dreamstore.userservice.validation.BadRequestException;
 import com.junyounggoat.dreamstore.userservice.validation.CodeExistValidator;
+import com.junyounggoat.dreamstore.userservice.validation.UniqueColumnValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Spy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +55,8 @@ import java.util.stream.Stream;
 
 import static com.junyounggoat.dreamstore.userservice.controller.UserController.LOGIN_USER_NOT_VALID_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.entity.KakaoUserTests.createTestkakaoUser;
+import static com.junyounggoat.dreamstore.userservice.entity.NaverUserTests.createTestNaverUser;
+import static com.junyounggoat.dreamstore.userservice.service.NaverLoginService.REQUEST_NAVER_USER_PROFILE_FAILED;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserValidation.*;
@@ -64,6 +68,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
@@ -89,6 +94,8 @@ public class UserControllerTests {
     private KakaoLoginService kakaoLoginService;
     @MockBean
     private NaverLoginService naverLoginService;
+    @SpyBean
+    private UserService userService;
 
     private final Logger logger = LoggerFactory.getLogger(UserControllerTests.class);
 
@@ -113,6 +120,16 @@ public class UserControllerTests {
                     "        \"userPhoneNumber\": \"01000000002\"\n" +
                     "    },\n" +
                     "    \"kakaoId\": 1,\n" +
+                    "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
+                    "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
+                    "}",
+            UserLoginCategoryCode.naverUser, "{\n" +
+                    "    \"user\": {\n" +
+                    "        \"userPersonName\": \"테스터\",\n" +
+                    "        \"userEmailAddress\": \"tester3@example.com\",\n" +
+                    "        \"userPhoneNumber\": \"01000000003\"\n" +
+                    "    },\n" +
+                    "    \"naverAccessToken\": \"\",\n" +
                     "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
                     "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
                     "}"
@@ -242,7 +259,7 @@ public class UserControllerTests {
                 .forEach((requestData) -> assertPostRequestBadRequest(endPoint, requestData));
     }
 
-    private void validateDuplatedUserFields(String jsonString, String endPoint, Map<String, Object> notDuplicatedValuesParam) {
+    private void validateDuplicatedUserFields(String jsonString, String endPoint, Map<String, Object> notDuplicatedValuesParam) {
         assertPostRequestCreated(endPoint, jsonString);
 
         Map<String, Object> notDuplicatedValues = Map.of(
@@ -276,6 +293,36 @@ public class UserControllerTests {
             notDuplicatedUserRequestData = updateJsonValue(notDuplicatedUserRequestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
         }
         assertPostRequestCreated(endPoint, notDuplicatedUserRequestData);
+    }
+
+    private void validateMalformedUserRequest(String requestData, String endPoint) {
+        /*
+        사용자사람이름: 글자수 제한 (최소, 최대)
+        사용자이메일주소: 이메일주소 형식 ^[\w._%+-]+@[\w._-]+\.[\w]{2,}$ 에 맞는지, 최대 글자 320자
+        사용자휴대폰번호: 휴대폰번호 형식 ^\d{8,15}$ 에 맞는지
+        ToDo: 사용자동의항목: 필수값이 모두 포함되어 있는지 여부
+         */
+        Map<String, List<String>> malformedUserRequestDataMap = Map.of(
+                "$.user.userPersonName", List.of(
+                        "김".repeat(USER_PERSON_NAME_MIN_LENGTH - 1),
+                        "김".repeat(USER_PERSON_NAME_MAX_LENGTH + 1)),
+                "$.user.userEmailAddress", List.of(
+                        "tester@co." + "a".repeat(USER_EMAIL_ADDRESS_MAX_LENGTH),
+                        "tester@com",
+                        "@com.com",
+                        "tester@t.t"),
+                "$.user.userPhoneNumber", List.of(
+                        "1".repeat(USER_PHONE_NUMBER_MIN_LENGTH - 1),
+                        "0".repeat(USER_PHONE_NUMBER_MAX_LENGTH + 1))
+        );
+
+        malformedUserRequestDataMap.entrySet().forEach(jsonKeyValue -> {
+            List<String> values = jsonKeyValue.getValue();
+            values.forEach(value -> {
+                String malformedUserRequestData = updateJsonValue(requestData, jsonKeyValue.getKey(), value);
+                assertPostRequestBadRequest(endPoint, malformedUserRequestData);
+            });
+        });
     }
 
     @Test
@@ -316,7 +363,7 @@ public class UserControllerTests {
     @DisplayName("사용자 생성 시 중복된 사용자 검증")
     void createUserValidateDuplicatedUser() throws Exception {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
-        validateDuplatedUserFields(jsonString, "/api/v1/user", Map.of(
+        validateDuplicatedUserFields(jsonString, "/api/v1/user", Map.of(
                 "$.userLoginCredentials.loginUserName", "new_tester"
         ));
     }
@@ -325,33 +372,7 @@ public class UserControllerTests {
     @DisplayName("사용자 생성 시 사용자 입력형식 검증")
     void createUserValidateMalformedUser() {
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.userLoginCredentials);
-        /*
-        사용자사람이름: 글자수 제한 (최소, 최대)
-        사용자이메일주소: 이메일주소 형식 ^[\w._%+-]+@[\w._-]+\.[\w]{2,}$ 에 맞는지, 최대 글자 320자
-        사용자휴대폰번호: 휴대폰번호 형식 ^\d{8,15}$ 에 맞는지
-        ToDo: 사용자동의항목: 필수값이 모두 포함되어 있는지 여부
-         */
-        Map<String, List<String>> malformedUserRequestDataMap = Map.of(
-                "$.user.userPersonName", List.of(
-                        "김".repeat(USER_PERSON_NAME_MIN_LENGTH - 1),
-                        "김".repeat(USER_PERSON_NAME_MAX_LENGTH + 1)),
-                "$.user.userEmailAddress", List.of(
-                        "tester@co." + "a".repeat(USER_EMAIL_ADDRESS_MAX_LENGTH),
-                        "tester@com",
-                        "@com.com",
-                        "tester@t.t"),
-                "$.user.userPhoneNumber", List.of(
-                        "1".repeat(USER_PHONE_NUMBER_MIN_LENGTH - 1),
-                        "0".repeat(USER_PHONE_NUMBER_MAX_LENGTH + 1))
-        );
-
-        malformedUserRequestDataMap.entrySet().forEach(jsonKeyValue -> {
-            List<String> values = jsonKeyValue.getValue();
-            values.forEach(value -> {
-                String malformedUserRequestData = updateJsonValue(jsonString, jsonKeyValue.getKey(), value);
-                assertPostRequestBadRequest("/api/v1/user", malformedUserRequestData);
-            });
-        });
+        validateMalformedUserRequest(jsonString, "/api/v1/user");
     }
 
     @Test
@@ -583,7 +604,7 @@ public class UserControllerTests {
 
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.kakaoUser);
 
-        validateDuplatedUserFields(jsonString, "/api/v1/user/kakao", Map.of(
+        validateDuplicatedUserFields(jsonString, "/api/v1/user/kakao", Map.of(
                 "$.kakaoId", 2L
         ));
     }
@@ -663,5 +684,84 @@ public class UserControllerTests {
 
         TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
         assertNotNull(tokenResponseDTO);
+    }
+
+    @Test
+    @DisplayName("네이버사용자 회원가입 : 성공")
+    public void createNaverUserSuccess() throws UnsupportedEncodingException, JsonProcessingException {
+        doReturn(TokenResponseDTO.builder().build())
+                .when(userService.createNaverUser(any(CreateNaverUserRequestDTO.class)));
+
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
+
+        String responseBody = assertPostRequestCreated("/api/v1/user/naver", jsonString)
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        TokenResponseDTO tokenResponseDTO = objectMapper.readValue(responseBody, TokenResponseDTO.class);
+        assertNotNull(tokenResponseDTO);
+    }
+
+    @Test
+    @DisplayName("네이버사용자 회원가입 : 필수값 검증")
+    public void createNaverUserValidateRequiredFields() {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
+        validateCreateMemberCommonFields(jsonString, "/api/v1/user/naver");
+
+        Map<String, Object> requiredFieldsKeyEmptyValueMap = Map.of(
+                "$.naverAccessToken", ""
+        );
+        List<String> requiredFieldList = List.of(
+                "$.naverAccessToken"
+        );
+
+        List<String> requestDataList = requiredFieldsKeyEmptyValueMap.entrySet().stream()
+                .map(entry -> updateJsonValue(jsonString, entry.getKey(), entry.getValue()))
+                .toList();
+
+        requestDataList = Stream.concat(requestDataList.stream(),
+                requiredFieldList.stream()
+                        .map(key -> removeJsonKey(jsonString, key))
+        ).toList();
+
+        requestDataList.forEach(requestData -> assertPostRequestBadRequest("/api/v1/user/naver", requestData));
+    }
+    
+    @Test
+    @DisplayName("네이버사용자 회원가입 : 입력형식 검증(이메일주소, 휴대폰번호)")
+    public void createNaverUserValidateMalformedData() {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
+        validateMalformedUserRequest(jsonString, "/api/v1/user/naver");
+    }
+
+    @Test
+    @DisplayName("네이버사용자 회원가입 : 중복 검사 (이메일주소, 휴대폰번호)")
+    public void createNaverUserValidateDuplication() {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
+        validateDuplicatedUserFields(jsonString, "/api/v1/user/naver", Map.of());
+    }
+
+    @Test
+    @DisplayName("네이버사용자 회원가입 : 중복 검사 (네이버사용자)")
+    public void createNaverUserValidateDuplicatedNaverUser() {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
+
+        doReturn(User.builder().build())
+                .when(naverLoginService).getUserByAccessToken(anyString());
+
+        assertPostRequestBadRequest("/api/v1/user/naver", jsonString);
+    }
+
+    @Test
+    @DisplayName("네이버사용자 회원가입 : 네이버사용자 프로필 조회 실패")
+    public void createNaverUserFailsWhenRequestNaverUserFails() throws Exception {
+        String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
+
+        doThrow(new BadRequestException(REQUEST_NAVER_USER_PROFILE_FAILED))
+                .when(userService).createNaverUser(any(CreateNaverUserRequestDTO.class));
+
+        assertPostRequestBadRequest("/api/v1/user/naver", jsonString)
+                .andExpect(content().string(REQUEST_NAVER_USER_PROFILE_FAILED));
     }
 }
