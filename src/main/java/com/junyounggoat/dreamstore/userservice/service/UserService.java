@@ -23,6 +23,7 @@ public class UserService {
     private final TokenService tokenService;
     private final SendEventService sendEventService;
     private final KakaoLoginService kakaoLoginService;
+    private final NaverLoginService naverLoginService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
@@ -50,6 +51,14 @@ public class UserService {
         CreateMemberCreatedEntity createMemberCreatedEntity = createMember(createKakaoUserRequestDTO, UserLoginCategoryCode.userLoginCredentials);
 
         kakaoLoginService.createKakaoUser(createMemberCreatedEntity.getUserLoginCategory(), createKakaoUserRequestDTO.getKakaoId());
+
+        return tokenService.createAccessTokenWithRefreshToken(createMemberCreatedEntity.getUser().getUserId());
+    }
+
+    public TokenResponseDTO createNaverUser(CreateNaverUserRequestDTO createNaverUserRequestDTO) {
+        CreateMemberCreatedEntity createMemberCreatedEntity = createMember(createNaverUserRequestDTO, UserLoginCategoryCode.naverUser);
+
+        naverLoginService.createNaverUser(createMemberCreatedEntity.getUserLoginCategory(), createNaverUserRequestDTO.getNaverAccessToken());
 
         return tokenService.createAccessTokenWithRefreshToken(createMemberCreatedEntity.getUser().getUserId());
     }
