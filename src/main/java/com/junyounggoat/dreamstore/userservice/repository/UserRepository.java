@@ -91,6 +91,14 @@ public class UserRepository {
         return created;
     }
 
+    public NaverUser insertNaverUser(NaverUser naverUser) {
+        NaverUser createdNaverUser = naverUser.toBuilder().build();
+
+        entityManager.persist(createdNaverUser);
+
+        return createdNaverUser;
+    }
+
     public @Nullable User findUserByUserEmailAddress(String userEmailAddress) {
         return queryFactory.selectFrom(qUser)
                 .where(qUser.userEmailAddress.eq(userEmailAddress)
