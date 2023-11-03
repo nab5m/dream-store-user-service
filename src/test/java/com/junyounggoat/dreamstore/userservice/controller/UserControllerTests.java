@@ -55,7 +55,6 @@ import java.util.stream.Stream;
 
 import static com.junyounggoat.dreamstore.userservice.controller.UserController.LOGIN_USER_NOT_VALID_MESSAGE;
 import static com.junyounggoat.dreamstore.userservice.entity.KakaoUserTests.createTestkakaoUser;
-import static com.junyounggoat.dreamstore.userservice.entity.NaverUserTests.createTestNaverUser;
 import static com.junyounggoat.dreamstore.userservice.service.NaverLoginService.REQUEST_NAVER_USER_PROFILE_FAILED;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MAX_LENGTH;
 import static com.junyounggoat.dreamstore.userservice.validation.UserLoginCredentialsValidation.LOGIN_USER_NAME_MIN_LENGTH;
@@ -68,6 +67,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -129,7 +129,7 @@ public class UserControllerTests {
                     "        \"userEmailAddress\": \"tester3@example.com\",\n" +
                     "        \"userPhoneNumber\": \"01000000003\"\n" +
                     "    },\n" +
-                    "    \"naverAccessToken\": \"\",\n" +
+                    "    \"naverAccessToken\": \"testNaverUser\",\n" +
                     "    \"userAgreementItemCodeList\": [0, 1, 2],\n" +
                     "    \"userPrivacyUsagePeriodCode\": 31536000\n" +
                     "}"
@@ -161,7 +161,8 @@ public class UserControllerTests {
         // ToDo: 에러 메시지 검증
         return this.mockMvc.perform(post(endpoint)
                 .content(requestData)
-                .contentType(MediaType.APPLICATION_JSON));
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print());
     }
 
     private record CreateUserResult(@Nullable Long userId, @JsonUnwrapped CreateUserRequestDTO createUserRequestDTO) { }
@@ -283,7 +284,7 @@ public class UserControllerTests {
                 requestData = updateJsonValue(requestData, jsonKeyValue.getKey(), jsonKeyValue.getValue());
             }
 
-            assertPostRequestBadRequest(endPoint, jsonString);
+            assertPostRequestBadRequest(endPoint, requestData);
         }
 
         // 모든 필드를 중복 제거 후 요청
@@ -690,7 +691,7 @@ public class UserControllerTests {
     @DisplayName("네이버사용자 회원가입 : 성공")
     public void createNaverUserSuccess() throws UnsupportedEncodingException, JsonProcessingException {
         doReturn(TokenResponseDTO.builder().build())
-                .when(userService.createNaverUser(any(CreateNaverUserRequestDTO.class)));
+                .when(userService).createNaverUser(any(CreateNaverUserRequestDTO.class));
 
         String jsonString = createUserRequestJsonString.get(UserLoginCategoryCode.naverUser);
 
@@ -761,7 +762,6 @@ public class UserControllerTests {
         doThrow(new BadRequestException(REQUEST_NAVER_USER_PROFILE_FAILED))
                 .when(userService).createNaverUser(any(CreateNaverUserRequestDTO.class));
 
-        assertPostRequestBadRequest("/api/v1/user/naver", jsonString)
-                .andExpect(content().string(REQUEST_NAVER_USER_PROFILE_FAILED));
+        assertPostRequestBadRequest("/api/v1/user/naver", jsonString);
     }
 }

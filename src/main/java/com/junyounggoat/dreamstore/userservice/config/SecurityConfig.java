@@ -59,8 +59,10 @@ public class SecurityConfig {
                             RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/v1/user/(\\d)+$"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user/kakao"),
+                            builder.pattern(HttpMethod.POST, "/api/v1/user/naver"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user/login"),
                             builder.pattern(HttpMethod.POST, "/api/v1/user/login/kakao"),
+                            builder.pattern(HttpMethod.POST, "/api/v1/user/login/naver"),
                             builder.pattern(HttpMethod.POST, "/api/v1/token/refresh"),
                             builder.pattern(HttpMethod.DELETE, "/api/v1/token")
                     ).permitAll()

@@ -94,6 +94,29 @@ public abstract class UserControllerDocs {
 
     @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
+    @Operation(summary = "네이버사용자 가입")
+    @RequestBody(
+            description = CREATE_MEMBER_COMMON_FIELDS_DESCRIPTION,
+            content = @Content(schema = @Schema(implementation = CreateNaverUserRequestDTO.class))
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "회원가입 성공 및 accessToken 발급",
+                    content = @Content(schema = @Schema(implementation = TokenResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "필수값 누락, 잘못된 형식의 입력, 중복된 값 입력",
+                    content = @Content(schema = @Schema(example = "{\n" +
+                            "    \"fieldErrors\": {\n" +
+                            "        \"user.userPersonName\": \"2~30자의 이름을 입력해주세요.\",\n" +
+                            "        \"naverAccessToken\": \"이미 가입한 네이버 사용자입니다.\"\n" +
+                            "    }," +
+                            "    \"notFieldErrors\": []\n" +
+                            "}"))),
+            @ApiResponse(responseCode = "400 ", description = "네이버 사용자 프로필 조회 실패",
+                    content = @Content(schema = @Schema(example = REQUEST_NAVER_USER_PROFILE_FAILED)))
+    })
+    public @interface CreateNaverUserDocs { }
+
+    @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
     @Operation(summary = "사용자로그인자격증명으로 로그인")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "로그인 성공 및 accessToken 발급",

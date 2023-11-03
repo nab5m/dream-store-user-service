@@ -109,6 +109,19 @@ public class UserController {
         return userService.createKakaoUser(createKakaoUserRequestDTO);
     }
 
+    @PostMapping("/naver")
+    @ResponseStatus(code = HttpStatus.CREATED)
+    @UserControllerDocs.CreateNaverUserDocs
+    public TokenResponseDTO createNaverUser(@RequestBody @Valid CreateNaverUserRequestDTO createNaverUserRequestDTO, Errors errors) {
+        NotValidException.throwIfErrorExists(errors);
+
+        validateNewMemberCommonFields(createNaverUserRequestDTO, errors);
+        UniqueColumnValidator.validateUniqueNaverId(uniqueColumnValidator, "naverAccessToken", createNaverUserRequestDTO.getNaverAccessToken(), errors);
+        NotValidException.throwIfErrorExists(errors);
+
+        return userService.createNaverUser(createNaverUserRequestDTO);
+    }
+
     @PostMapping("/login")
     @UserControllerDocs.LoginDocs
     public TokenResponseDTO login(@RequestBody @Valid LoginRequestDTO loginRequestDTO, Errors errors) {

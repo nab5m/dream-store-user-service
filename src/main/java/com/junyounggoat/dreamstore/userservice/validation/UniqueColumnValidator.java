@@ -4,6 +4,7 @@ import com.junyounggoat.dreamstore.userservice.entity.User;
 import com.junyounggoat.dreamstore.userservice.entity.UserLoginCredentials;
 import com.junyounggoat.dreamstore.userservice.repository.UserRepository;
 import com.junyounggoat.dreamstore.userservice.constant.UniqueColumn;
+import com.junyounggoat.dreamstore.userservice.service.NaverLoginService;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.validation.Validator;
 public class UniqueColumnValidator implements Validator {
     private static final String ERROR_CODE = "Duplication";
 
+    private final NaverLoginService naverLoginService;
     private final UserRepository userRepository;
 
     @Builder
@@ -43,6 +45,7 @@ public class UniqueColumnValidator implements Validator {
             case LoginUserName -> validateUniqueLoginUserName(target, errors);
             case UserNickname -> validateUniqueUserNickname(target, errors);
             case KakaoId -> validateUniqueKakaoId(target, errors);
+            case NaverId -> validateUniqueNaverId(target, errors);
             default -> throw new RuntimeException("UniqueColumnValidator - Not Supported Column.");
         }
     }
@@ -101,6 +104,18 @@ public class UniqueColumnValidator implements Validator {
         User user = userRepository.findUserByKakaoId((Long) target.getValue());
         if (user != null) {
             String ERROR_MESSAGE = "이미 가입한 카카오 사용자입니다.";
+            try {
+                errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
+            } catch (NotReadablePropertyException exception) {
+                errors.reject(ERROR_CODE, ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void validateUniqueNaverId(Target target, Errors errors) {
+        User user = naverLoginService.getUserByAccessToken((String) target.getValue());
+        if (user != null) {
+            String ERROR_MESSAGE = "이미 가입한 네이버 사용자입니다.";
             try {
                 errors.rejectValue(target.getField(), ERROR_CODE, ERROR_MESSAGE);
             } catch (NotReadablePropertyException exception) {
@@ -176,6 +191,18 @@ public class UniqueColumnValidator implements Validator {
                         .field(field)
                         .uniqueColumn(UniqueColumn.KakaoId)
                         .value(kakaoId)
+                        .build(),
+                errors
+        );
+    }
+
+    public static void validateUniqueNaverId(UniqueColumnValidator uniqueColumnValidator, String field,
+                                             String naverAccessToken, Errors errors) {
+        uniqueColumnValidator.validate(
+                Target.builder()
+                        .field(field)
+                        .uniqueColumn(UniqueColumn.NaverId)
+                        .value(naverAccessToken)
                         .build(),
                 errors
         );
