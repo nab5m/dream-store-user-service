@@ -11,6 +11,7 @@
    - spring-redis-host=<로컬/테스트 레디스 주소>
    - spring-redis-port=<로컬/테스트 레디스 포트>
 2. spring-cloud AWS 키 설정
+   - AWS_REGION=<AWS 리전>
    - spring-cloud-aws-credentials-access-key=<AWS 엑세스 키>
    - spring-cloud-aws-credentials-secret-key=<AWS 시크릿 키>
    - spring-cloud-aws-sqs-region=<AWS SQS 리전>
